@@ -4,12 +4,8 @@
 
 <br/>
 
-<div align="center">
-  <a href="https://github.com/anuraghazra/github-readme-stats">
-    <img height="180" src="https://github-readme-stats.vercel.app/api?username=altrin7311&show_icons=true&theme=radical&count_private=true" />
-  </a>
-  <a href="https://github.com/anuraghazra/github-readme-stats">
-    <img height="180" src="https://github-readme-stats.vercel.app/api/top-langs/?username=altrin7311&layout=compact&theme=radical" />
-  </a>
-</div>
+<p align="center">
+  <img src="https://github-readme-stats.vercel.app/api?username=altrin7311&show_icons=true&theme=radical&count_private=true" height="180" alt="altrin7311's Github Stats" />
+  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=altrin7311&layout=compact&theme=radical" height="180" alt="Top Langs" />
+</p>
 <br/>
