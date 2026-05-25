@@ -2,9 +2,10 @@
 const https=require('https'),fs=require('fs');
 const USER='altrin7311';
 const TOKEN=process.env.GITHUB_TOKEN||'';
-const W=860,H=480,CX=240,CY=245;
+// CHANGE THESE LINES:
+const W=1000,H=600,CX=330,CY=300; // Increased width/height, moved center down and right
 const TILT=-15*Math.PI/180,FLAT=0.25;
-const ORBIT_RX=[60,105,150,195,238];
+const ORBIT_RX=[80,140,200,260,310]; // Widened the orbit radii to spread planets out
 const SPEEDS=[11,17,24,33,44];
 const ANGS=[0,1.26,2.51,3.77,5.03];
 const PCOL=[
