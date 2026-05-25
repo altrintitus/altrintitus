@@ -14,14 +14,17 @@ const LANG_MAP = {
   'C++':'rust',C:'rust',Java:'typescript',Shell:'js',
   Vue:'js',Svelte:'js',Ruby:'rust',PHP:'js',Kotlin:'typescript',
 };
+
+// Boosted the "hi" values for brighter comet impacts and planet glows
 const COLORS = {
-  python:    {hi:'#00e5ff',fill:'#0077cc',glow:'#00bbff'},
-  js:        {hi:'#ffd700',fill:'#cc8800',glow:'#ffcc00'},
-  typescript:{hi:'#22aaff',fill:'#0055cc',glow:'#0099ff'},
-  rust:      {hi:'#ff7722',fill:'#cc3300',glow:'#ff5500'},
+  python:    {hi:'#00ffff',fill:'#0077cc',glow:'#00bbff'},
+  js:        {hi:'#ffe600',fill:'#cc8800',glow:'#ffcc00'},
+  typescript:{hi:'#33bbff',fill:'#0055cc',glow:'#0099ff'},
+  rust:      {hi:'#ff5500',fill:'#cc3300',glow:'#ff4400'},
   html:      {hi:'#ff0088',fill:'#aa0044',glow:'#ff0066'},
-  archived:  {hi:'#445566',fill:'#1a2233',glow:'#334455'},
+  archived:  {hi:'#667788',fill:'#1a2233',glow:'#334455'},
 };
+
 const ORBITS=[
   {rx:82,ry:0},{rx:122,ry:0},{rx:162,ry:0},
   {rx:200,ry:0},{rx:238,ry:0},{rx:274,ry:0},{rx:308,ry:0}
@@ -53,49 +56,54 @@ function orbitPath(rx,ry,start=0,n=80){
   }).join(' ')+' Z';
 }
 
-function defs(repos,commitMsgs){
+function defs(repos){
   let d='<defs>';
   // Scanlines
   d+=`<pattern id="scan" x="0" y="0" width="1" height="3" patternUnits="userSpaceOnUse"><rect width="1" height="1" fill="rgba(0,0,0,0.15)"/></pattern>`;
-  // Tactical grid
+  // Tactical grid (Slightly brighter for depth)
   d+=`<pattern id="grid" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
-    <line x1="30" y1="0" x2="30" y2="30" stroke="rgba(0,255,80,0.04)" stroke-width="0.5"/>
-    <line x1="0" y1="30" x2="30" y2="30" stroke="rgba(0,255,80,0.04)" stroke-width="0.5"/>
+    <line x1="30" y1="0" x2="30" y2="30" stroke="rgba(0,255,100,0.06)" stroke-width="0.5"/>
+    <line x1="0" y1="30" x2="30" y2="30" stroke="rgba(0,255,100,0.06)" stroke-width="0.5"/>
   </pattern>`;
-  // Vignette
-  d+=`<radialGradient id="vig" cx="50%" cy="50%" r="68%"><stop offset="0%" stop-color="transparent"/><stop offset="100%" stop-color="rgba(0,0,0,0.8)"/></radialGradient>`;
-  // Sun
+  d+=`<radialGradient id="vig" cx="50%" cy="50%" r="68%"><stop offset="0%" stop-color="transparent"/><stop offset="100%" stop-color="rgba(0,0,0,0.85)"/></radialGradient>`;
   d+=`<radialGradient id="sg" cx="38%" cy="30%" r="62%"><stop offset="0%" stop-color="#fff0c0"/><stop offset="50%" stop-color="#ffaa20"/><stop offset="100%" stop-color="#110800"/></radialGradient>`;
   d+=`<radialGradient id="sgl"><stop offset="0%" stop-color="#ffcc44" stop-opacity="0.6"/><stop offset="55%" stop-color="#ff8800" stop-opacity="0.1"/><stop offset="100%" stop-color="#ff8800" stop-opacity="0"/></radialGradient>`;
-  // Nebula
+  
   ['#120626','#060e26','#060618'].forEach((c,i)=>
     d+=`<radialGradient id="nb${i}"><stop offset="0%" stop-color="${c}" stop-opacity="0.7"/><stop offset="100%" stop-color="${c}" stop-opacity="0"/></radialGradient>`);
-  // Comet gradient
-  d+=`<linearGradient id="cg" x1="100%" y1="0%" x2="0%" y2="0%"><stop offset="0%" stop-color="rgba(0,255,200,0.95)"/><stop offset="100%" stop-color="rgba(0,255,200,0)"/></linearGradient>`;
-  d+=`<linearGradient id="cg2" x1="100%" y1="0%" x2="0%" y2="0%"><stop offset="0%" stop-color="rgba(255,220,0,0.95)"/><stop offset="100%" stop-color="rgba(255,220,0,0)"/></linearGradient>`;
-  // Planets
+  
+  // Dynamic Comet Gradients based on Language Colors
+  Object.entries(COLORS).forEach(([lang, c]) => {
+    d+=`<linearGradient id="comet_${lang}" x1="100%" y1="0%" x2="0%" y2="0%">
+          <stop offset="0%" stop-color="${c.hi}" stop-opacity="0.95"/>
+          <stop offset="100%" stop-color="${c.hi}" stop-opacity="0"/>
+        </linearGradient>`;
+  });
+
   repos.forEach((r,i)=>{
     const c=COLORS[r.lang]||COLORS.archived;
     d+=`<radialGradient id="pg${i}" cx="32%" cy="26%" r="65%"><stop offset="0%" stop-color="${c.hi}"/><stop offset="55%" stop-color="${c.fill}"/><stop offset="100%" stop-color="#020210"/></radialGradient>`;
     d+=`<radialGradient id="gw${i}"><stop offset="0%" stop-color="${c.glow}" stop-opacity="0.75"/><stop offset="100%" stop-color="${c.glow}" stop-opacity="0"/></radialGradient>`;
   });
-  // Filters
+
   d+=`<filter id="fb" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="16"/></filter>`;
   d+=`<filter id="fg" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="6"/></filter>`;
-  // Phosphor text glow
+  
+  // Enhanced Phosphor text glow
   d+=`<filter id="glow" x="-30%" y="-60%" width="160%" height="220%">
-    <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+    <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
     <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
   </filter>`;
   d+=`<filter id="glowS" x="-20%" y="-50%" width="140%" height="200%">
     <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur"/>
     <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
   </filter>`;
-  // Ring glow
   d+=`<filter id="ringGlow" x="-20%" y="-100%" width="140%" height="300%"><feGaussianBlur stdDeviation="1.5"/></filter>`;
-  // Orbit paths
   ORBITS.forEach(({rx,ry},i)=>d+=`<path id="op${i}" d="${orbitPath(rx,ry,STARTS[i])}" fill="none"/>`);
   d+='</defs>';
+  
+  // Global CSS for native IDE typography
+  d+='<style>text { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace; }</style>';
   return d;
 }
 
@@ -110,14 +118,12 @@ function bg(){
 function stars(){
   const rng=prng(9999);
   let s='';
-  // Layer 1: tiny dim (180)
   for(let i=0;i<180;i++){
     const x=(rng()*W).toFixed(1),y=(rng()*H).toFixed(1);
     const op=(0.15+rng()*0.35).toFixed(2);
     const dur=(2+rng()*5).toFixed(1),beg=(rng()*9).toFixed(1);
     s+=`<circle cx="${x}" cy="${y}" r="0.5" fill="white" opacity="${op}"><animate attributeName="opacity" values="${op};${(+op*0.1).toFixed(2)};${op}" dur="${dur}s" begin="${beg}s" repeatCount="indefinite"/></circle>`;
   }
-  // Layer 2: medium (70)
   for(let i=0;i<70;i++){
     const x=(rng()*W).toFixed(1),y=(rng()*H).toFixed(1);
     const op=(0.4+rng()*0.45).toFixed(2);
@@ -125,7 +131,6 @@ function stars(){
     const warm=rng()<0.25?'255,240,180':'255,255,255';
     s+=`<circle cx="${x}" cy="${y}" r="1" fill="rgb(${warm})" opacity="${op}"><animate attributeName="opacity" values="${op};${(+op*0.08).toFixed(2)};${op}" dur="${dur}s" begin="${beg}s" repeatCount="indefinite"/></circle>`;
   }
-  // Layer 3: bright accent (20)
   for(let i=0;i<20;i++){
     const x=(rng()*W).toFixed(1),y=(rng()*H).toFixed(1);
     const op=(0.6+rng()*0.35).toFixed(2);
@@ -141,7 +146,7 @@ function rings(){
     const base=i===0?0.22:0.12;
     const dur=40+i*12;
     const offset=i*0.15;
-    return `<!-- orbit ring glow --><path d="${path}" fill="none" stroke="rgba(255,255,255,${(base*0.4).toFixed(2)})" stroke-width="1" filter="url(#ringGlow)"/>
+    return `<path d="${path}" fill="none" stroke="rgba(255,255,255,${(base*0.4).toFixed(2)})" stroke-width="1" filter="url(#ringGlow)"/>
 <path d="${path}" fill="none" stroke="rgba(255,255,255,${base.toFixed(2)})" stroke-width="0.7" stroke-dasharray="${i%3===0?'':'5,8'}">
   <animate attributeName="stroke-opacity" values="${base};${(base*1.8).toFixed(2)};${base}" dur="${dur}s" begin="${offset}s" repeatCount="indefinite"/>
 </path>`;
@@ -165,8 +170,8 @@ function sun(){
   return `<circle cx="${CX}" cy="${CY}" r="70" fill="url(#sgl)" filter="url(#fb)"><animate attributeName="r" values="65;80;65" dur="4s" repeatCount="indefinite"/></circle>
 <circle cx="${CX}" cy="${CY}" r="21" fill="url(#sg)"><animate attributeName="r" values="20;22.5;20" dur="3.8s" repeatCount="indefinite"/></circle>
 <circle cx="${CX-6}" cy="${CY-6}" r="9" fill="rgba(255,255,230,0.13)"/>
-<text x="${CX}" y="${CY+4}" text-anchor="middle" font-family="Courier New,monospace" font-size="10" font-weight="bold" fill="#020210">AT</text>
-<text x="${CX}" y="${CY+38}" text-anchor="middle" font-family="Courier New,monospace" font-size="7" fill="rgba(255,200,100,0.45)" letter-spacing="4">ALTRIN</text>`;
+<text x="${CX}" y="${CY+4}" text-anchor="middle" font-size="10" font-weight="bold" fill="#020210">AT</text>
+<text x="${CX}" y="${CY+38}" text-anchor="middle" font-size="7" fill="rgba(255,200,100,0.45)" letter-spacing="4">ALTRIN</text>`;
 }
 
 function planets(repos){
@@ -182,7 +187,7 @@ function planets(repos){
       const mo=pr+8,mr=Math.max(2,pr*0.2);
       s+=`<g><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="${(dur*0.12).toFixed(1)}s" repeatCount="indefinite"/><circle cx="${mo}" cy="0" r="${mr}" fill="#88aacc" opacity="0.7"/></g>`;
     }
-    s+=`<text y="${pr+13}" text-anchor="middle" font-family="Courier New,monospace" font-size="7.5" letter-spacing="0.5" fill="rgba(0,255,160,0.75)" filter="url(#glowS)">${name}</text>`;
+    s+=`<text y="${pr+14}" text-anchor="middle" font-size="7.5" letter-spacing="0.5" fill="rgba(0,255,160,0.85)" filter="url(#glowS)">${name}</text>`;
     return s+'</g>';
   }).join('');
 }
@@ -195,13 +200,12 @@ function ufo(){
 <circle cx="0"  cy="0" r="2.5"><animate attributeName="fill" values="#f0f;#0ff;#ff0;#f0f" dur="0.5s" repeatCount="indefinite"/></circle>
 <circle cx="7"  cy="0" r="2.5"><animate attributeName="fill" values="#0ff;#ff0;#f0f;#0ff" dur="0.5s" repeatCount="indefinite"/></circle>
 <polygon points="-11,6 11,6 18,28 -18,28" fill="rgba(180,0,255,0.1)"/>
-<text y="-14" text-anchor="middle" font-family="Courier New,monospace" font-size="7" letter-spacing="1.5" fill="rgba(220,100,255,0.9)" filter="url(#glowS)">OPEN ISSUE</text>
+<text y="-14" text-anchor="middle" font-size="7" letter-spacing="1.5" fill="rgba(220,100,255,0.9)" filter="url(#glowS)">OPEN ISSUE</text>
 </g>`;
 }
 
 function buildComets(repos, commitData){
   let s='';
-  // Use real commit messages if available, else generic
   const entries = commitData.length > 0 ? commitData : [
     {repoIdx:0, msg:'update'},{repoIdx:1, msg:'fix bug'},
     {repoIdx:2, msg:'refactor'},{repoIdx:3, msg:'add feature'},
@@ -210,25 +214,26 @@ function buildComets(repos, commitData){
   entries.slice(0,6).forEach((entry,ci)=>{
     const ri = entry.repoIdx % 7;
     const {rx,ry} = ORBITS[ri];
-    // Target: a point on this orbit ring
+    
+    // Dynamic Match: Retrieve the specific language of the planet the comet targets
+    const cLang = repos[ri] ? repos[ri].lang : 'archived';
+    const cHex = COLORS[cLang] ? COLORS[cLang].hi : '#ffffff';
+    const cGrad = `comet_${cLang}`;
+
     const impactAngle = STARTS[ri] + (ci * 0.8);
     const tp = orbitPt(rx, ry, impactAngle);
-    // Start from off-screen upper-left area
     const sx = Math.max(10, tp.x - 160 - ci*15);
     const sy = Math.max(10, tp.y - 55  - ci*8);
-    const dur = 7 + ci * 1.2; // slow: 7-14s
+    const dur = 7 + ci * 1.2; 
     const beg = ci * 3.5;
     const msg = esc(entry.msg.slice(0, 22));
-    const isEven = ci%2===0;
-    const grad = isEven?'cg':'cg2';
-    const col = isEven?'rgba(0,255,200,0.9)':'rgba(255,220,0,0.9)';
-    const colDim = isEven?'rgba(0,255,200,0.75)':'rgba(255,220,0,0.75)';
+    
     s+=`<g opacity="0">
 <animateMotion dur="${dur.toFixed(1)}s" begin="${beg.toFixed(1)}s" repeatCount="indefinite" rotate="auto" path="M ${sx.toFixed(1)},${sy.toFixed(1)} L ${tp.x.toFixed(1)},${tp.y.toFixed(1)}"/>
 <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.05;0.88;1" dur="${dur.toFixed(1)}s" begin="${beg.toFixed(1)}s" repeatCount="indefinite"/>
-<circle r="3" fill="${col}"/>
-<rect x="-58" y="-1.5" width="58" height="3" fill="url(#${grad})" rx="1.5"/>
-<text x="5" y="-6" font-family="Courier New,monospace" font-size="6.5" letter-spacing="0.5" fill="${colDim}" filter="url(#glowS)">${msg}</text>
+<circle r="3" fill="${cHex}"/>
+<rect x="-58" y="-1.5" width="58" height="3" fill="url(#${cGrad})" rx="1.5"/>
+<text x="5" y="-6" font-size="6.5" font-weight="bold" letter-spacing="0.5" fill="${cHex}" filter="url(#glowS)">${msg}</text>
 </g>`;
   });
   return s;
@@ -241,66 +246,65 @@ function blackhole(){
 <ellipse cx="${bx}" cy="${by}" rx="22" ry="7" fill="none" stroke="rgba(220,100,255,0.65)" stroke-width="1.5"><animateTransform attributeName="transform" type="rotate" from="0 ${bx} ${by}" to="360 ${bx} ${by}" dur="2.2s" repeatCount="indefinite"/></ellipse>
 <circle cx="${bx}" cy="${by}" r="14" fill="#000"/>
 <circle cx="${bx}" cy="${by}" r="14" fill="none" stroke="rgba(200,80,255,0.8)" stroke-width="1.2"/>
-<text x="${bx}" y="${by+27}" text-anchor="middle" font-family="Courier New,monospace" font-size="7" letter-spacing="2" fill="rgba(180,60,255,0.8)" filter="url(#glowS)">ARCHIVED</text>`;
+<text x="${bx}" y="${by+27}" text-anchor="middle" font-size="7" letter-spacing="2" fill="rgba(180,60,255,0.8)" filter="url(#glowS)">ARCHIVED</text>`;
 }
 
 function hud(stats){
   const x=14,y=14,w=192,h=218;
   const rows1=[['REPOS',stats.repos],['STARS',stats.stars],['LANGUAGES',stats.langs],['ACTIVE SINCE',stats.since]];
   const rows2=[['COMMITS',stats.commits],['PRS MERGED',stats.prs],['OPEN ISSUES',stats.issues]];
-  let s=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="rgba(0,8,1,0.94)" stroke="rgba(0,255,80,0.22)" stroke-width="0.8"/>`;
-  s+=`<rect x="${x+1}" y="${y+1}" width="${w-2}" height="22" rx="2" fill="rgba(0,255,80,0.07)"/>`;
-  // Corner brackets with glow
+  let s=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="rgba(0,10,2,0.85)" stroke="rgba(0,255,80,0.25)" stroke-width="0.8" style="backdrop-filter:blur(4px)"/>`;
+  s+=`<rect x="${x+1}" y="${y+1}" width="${w-2}" height="22" rx="2" fill="rgba(0,255,80,0.09)"/>`;
+  
   [[x,y],[x+w,y],[x,y+h],[x+w,y+h]].forEach(([px,py])=>{
     const sx=px===x?1:-1,sy=py===y?1:-1;
     s+=`<line x1="${px}" y1="${py+sy*12}" x2="${px}" y2="${py}" stroke="#00ff44" stroke-width="2" filter="url(#glowS)"/>`;
     s+=`<line x1="${px}" y1="${py}" x2="${px+sx*12}" y2="${py}" stroke="#00ff44" stroke-width="2" filter="url(#glowS)"/>`;
   });
-  s+=`<text x="${x+11}" y="${y+15}" font-family="Courier New,monospace" font-size="8" letter-spacing="0.8" fill="rgba(0,255,68,0.95)" filter="url(#glow)">[ ATLAS · /usr/altrin ]</text>`;
-  // Blinking cursor
-  s+=`<text x="${x+w-22}" y="${y+15}" font-family="Courier New,monospace" font-size="9" fill="#00ff44" filter="url(#glow)">█<animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/></text>`;
+  
+  s+=`<text x="${x+11}" y="${y+15}" font-size="8" font-weight="bold" letter-spacing="0.8" fill="rgba(0,255,68,1)" filter="url(#glow)">[ ATLAS · /usr/altrin ]</text>`;
+  s+=`<text x="${x+w-22}" y="${y+15}" font-size="9" fill="#00ff44" filter="url(#glow)">█<animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/></text>`;
   s+=`<line x1="${x+6}" y1="${y+24}" x2="${x+w-6}" y2="${y+24}" stroke="rgba(0,255,70,0.15)" stroke-width="0.8" stroke-dasharray="4,5"/>`;
 
   rows1.forEach(([label,val],i)=>{
     const ry=y+37+i*17;
     if(i%2===0) s+=`<rect x="${x+1}" y="${ry-12}" width="${w-2}" height="16" fill="rgba(0,255,80,0.03)"/>`;
-    s+=`<text x="${x+10}" y="${ry}" font-family="Courier New,monospace" font-size="7.5" fill="rgba(0,200,70,0.7)">${esc(label)}</text>`;
-    s+=`<text x="${x+w-10}" y="${ry}" text-anchor="end" font-family="Courier New,monospace" font-size="7.5" font-weight="bold" fill="rgba(0,255,80,0.95)" filter="url(#glowS)">${esc(String(val))}</text>`;
+    s+=`<text x="${x+10}" y="${ry}" font-size="7.5" fill="rgba(0,200,70,0.7)">${esc(label)}</text>`;
+    s+=`<text x="${x+w-10}" y="${ry}" text-anchor="end" font-size="7.5" font-weight="bold" fill="rgba(0,255,80,1)" filter="url(#glowS)">${esc(String(val))}</text>`;
   });
 
   const dy=y+37+rows1.length*17+5;
   s+=`<line x1="${x+6}" y1="${dy}" x2="${x+w-6}" y2="${dy}" stroke="rgba(0,255,70,0.15)" stroke-width="0.8" stroke-dasharray="4,5"/>`;
-  s+=`<text x="${x+w/2}" y="${dy+11}" text-anchor="middle" font-family="Courier New,monospace" font-size="6.5" letter-spacing="2" fill="rgba(0,220,60,0.55)" filter="url(#glowS)">── LAST 30 DAYS ──</text>`;
+  s+=`<text x="${x+w/2}" y="${dy+11}" text-anchor="middle" font-size="6.5" font-weight="bold" letter-spacing="2" fill="rgba(0,220,60,0.6)" filter="url(#glowS)">── LAST 30 DAYS ──</text>`;
 
   rows2.forEach(([label,val],i)=>{
     const ry=dy+24+i*17;
     if(i%2===0) s+=`<rect x="${x+1}" y="${ry-12}" width="${w-2}" height="16" fill="rgba(0,255,80,0.03)"/>`;
-    s+=`<text x="${x+10}" y="${ry}" font-family="Courier New,monospace" font-size="7.5" fill="rgba(0,200,70,0.7)">${esc(label)}</text>`;
-    s+=`<text x="${x+w-10}" y="${ry}" text-anchor="end" font-family="Courier New,monospace" font-size="7.5" font-weight="bold" fill="rgba(0,255,80,0.95)" filter="url(#glowS)">${esc(String(val))}</text>`;
+    s+=`<text x="${x+10}" y="${ry}" font-size="7.5" fill="rgba(0,200,70,0.7)">${esc(label)}</text>`;
+    s+=`<text x="${x+w-10}" y="${ry}" text-anchor="end" font-size="7.5" font-weight="bold" fill="rgba(0,255,80,1)" filter="url(#glowS)">${esc(String(val))}</text>`;
   });
 
   s+=`<line x1="${x+6}" y1="${y+h-24}" x2="${x+w-6}" y2="${y+h-24}" stroke="rgba(0,255,70,0.15)" stroke-width="0.8" stroke-dasharray="4,5"/>`;
-  s+=`<text x="${x+10}" y="${y+h-11}" font-family="Courier New,monospace" font-size="6.5" fill="rgba(0,180,55,0.55)">› SYNC · DAILY</text>`;
+  s+=`<text x="${x+10}" y="${y+h-11}" font-size="6.5" font-weight="bold" fill="rgba(0,200,55,0.7)">› SYNC · DAILY</text>`;
   s+=`<rect x="${x+w-20}" y="${y+h-19}" width="6" height="9" rx="1" fill="#00ff44" filter="url(#glowS)"><animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/></rect>`;
   return s;
 }
 
 function legend(){
   const x=W-150,y=H-114,w=138,h=102;
-  // Neon colors matching COLORS object
   const items=[
-    ['#00e5ff','PYTHON'],['#ffd700','JS'],
-    ['#22aaff','TYPESCRIPT'],['#ff7722','RUST'],['#445566','ARCHIVED']
+    ['#00ffff','PYTHON'],['#ffe600','JS'],
+    ['#33bbff','TYPESCRIPT'],['#ff5500','RUST'],['#667788','ARCHIVED']
   ];
-  let s=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="rgba(1,3,14,0.94)" stroke="rgba(0,180,255,0.2)" stroke-width="0.8"/>`;
-  s+=`<rect x="${x+1}" y="${y+1}" width="${w-2}" height="18" rx="2" fill="rgba(0,180,255,0.07)"/>`;
-  s+=`<text x="${x+12}" y="${y+13}" font-family="Courier New,monospace" font-size="7" letter-spacing="2" fill="rgba(80,200,255,0.9)" filter="url(#glowS)">LANG · COLOR MAP</text>`;
+  let s=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="rgba(1,4,16,0.85)" stroke="rgba(0,180,255,0.25)" stroke-width="0.8" style="backdrop-filter:blur(4px)"/>`;
+  s+=`<rect x="${x+1}" y="${y+1}" width="${w-2}" height="18" rx="2" fill="rgba(0,180,255,0.09)"/>`;
+  s+=`<text x="${x+12}" y="${y+13}" font-size="7" font-weight="bold" letter-spacing="2" fill="rgba(80,200,255,1)" filter="url(#glowS)">LANG · COLOR MAP</text>`;
   s+=`<line x1="${x+6}" y1="${y+19}" x2="${x+w-6}" y2="${y+19}" stroke="rgba(0,180,255,0.12)" stroke-width="0.5"/>`;
   items.forEach(([col,lab],i)=>{
     const iy=y+27+i*15;
     s+=`<rect x="${x+10}" y="${iy}" width="9" height="9" rx="2" fill="${col}" opacity="0.9"/>`;
     s+=`<circle cx="${x+14.5}" cy="${iy+4.5}" r="3" fill="${col}" opacity="0.4" filter="url(#fg)"/>`;
-    s+=`<text x="${x+25}" y="${iy+7.5}" font-family="Courier New,monospace" font-size="7.5" letter-spacing="1" fill="rgba(180,220,255,0.85)">${lab}</text>`;
+    s+=`<text x="${x+25}" y="${iy+7.5}" font-size="7.5" font-weight="bold" letter-spacing="1" fill="rgba(200,230,255,0.9)">${lab}</text>`;
   });
   return s;
 }
@@ -308,34 +312,31 @@ function legend(){
 function overlay(){
   let s=`<rect width="${W}" height="${H}" fill="url(#scan)" pointer-events="none"/>`;
   s+=`<rect width="${W}" height="${H}" fill="url(#vig)" pointer-events="none"/>`;
-  // Corner crosshairs
   [[20,20],[W-20,20],[20,H-20],[W-20,H-20]].forEach(([cx,cy])=>{
-    s+=`<line x1="${cx-9}" y1="${cy}" x2="${cx+9}" y2="${cy}" stroke="rgba(0,255,80,0.3)" stroke-width="0.8" filter="url(#glowS)"/>`;
-    s+=`<line x1="${cx}" y1="${cy-9}" x2="${cx}" y2="${cy+9}" stroke="rgba(0,255,80,0.3)" stroke-width="0.8" filter="url(#glowS)"/>`;
-    s+=`<circle cx="${cx}" cy="${cy}" r="1.8" fill="rgba(0,255,80,0.35)"/>`;
+    s+=`<line x1="${cx-9}" y1="${cy}" x2="${cx+9}" y2="${cy}" stroke="rgba(0,255,80,0.4)" stroke-width="0.8" filter="url(#glowS)"/>`;
+    s+=`<line x1="${cx}" y1="${cy-9}" x2="${cx}" y2="${cy+9}" stroke="rgba(0,255,80,0.4)" stroke-width="0.8" filter="url(#glowS)"/>`;
+    s+=`<circle cx="${cx}" cy="${cy}" r="1.8" fill="rgba(0,255,80,0.5)"/>`;
   });
-  // Status bar
-  s+=`<rect x="0" y="${H-17}" width="${W}" height="17" fill="rgba(0,12,2,0.75)"/>`;
-  s+=`<line x1="0" y1="${H-17}" x2="${W}" y2="${H-17}" stroke="rgba(0,255,80,0.12)" stroke-width="0.5"/>`;
-  s+=`<text x="12" y="${H-5}" font-family="Courier New,monospace" font-size="7" letter-spacing="1" fill="rgba(0,220,60,0.6)" filter="url(#glowS)">SYS:ONLINE</text>`;
-  s+=`<text x="${W/2}" y="${H-5}" text-anchor="middle" font-family="Courier New,monospace" font-size="7" letter-spacing="1" fill="rgba(0,200,60,0.45)">ALTRIN7311 · GITHUB GALAXY</text>`;
-  s+=`<text x="${W-12}" y="${H-5}" text-anchor="end" font-family="Courier New,monospace" font-size="7" letter-spacing="1" fill="rgba(0,200,60,0.6)" filter="url(#glowS)">AUTO-SYNC</text>`;
+  s+=`<rect x="0" y="${H-17}" width="${W}" height="17" fill="rgba(0,12,2,0.85)"/>`;
+  s+=`<line x1="0" y1="${H-17}" x2="${W}" y2="${H-17}" stroke="rgba(0,255,80,0.2)" stroke-width="0.5"/>`;
+  s+=`<text x="12" y="${H-5}" font-size="7" font-weight="bold" letter-spacing="1" fill="rgba(0,255,80,0.8)" filter="url(#glowS)">ROLE: AI_ENGINEER</text>`;
+  s+=`<text x="${W/2}" y="${H-5}" text-anchor="middle" font-size="7" font-weight="bold" letter-spacing="1.5" fill="rgba(0,200,60,0.55)">ALTRIN7311 · SENTIENT AI CORE</text>`;
+  s+=`<text x="${W-12}" y="${H-5}" text-anchor="end" font-size="7" font-weight="bold" letter-spacing="1" fill="rgba(0,255,80,0.8)" filter="url(#glowS)">AUTO-SYNC</text>`;
   return s;
 }
 
 function title(){
   const mid=W/2+20;
-  return `<text x="${mid}" y="20" text-anchor="middle" font-family="Courier New,monospace" font-size="13" font-weight="bold" fill="rgba(0,220,255,0.9)" letter-spacing="7" filter="url(#glow)">ALTRIN'S  GALAXY</text>
-<line x1="${mid-125}" y1="25" x2="${mid+125}" y2="25" stroke="rgba(0,200,255,0.18)" stroke-width="0.5"/>
-<text x="${mid-14}" y="36" text-anchor="middle" font-family="Courier New,monospace" font-size="7" fill="rgba(60,160,220,0.42)" letter-spacing="2">AUTO-UPDATES DAILY ·</text>
-<text x="${mid+78}" y="36" text-anchor="middle" font-family="Courier New,monospace" font-size="7" fill="rgba(0,255,100,0.82)" letter-spacing="2" filter="url(#glowS)">LIVE GITHUB DATA</text>`;
+  return `<text x="${mid}" y="20" text-anchor="middle" font-size="13" font-weight="bold" fill="rgba(0,255,255,1)" letter-spacing="7" filter="url(#glow)">ALTRIN'S  GALAXY</text>
+<line x1="${mid-125}" y1="25" x2="${mid+125}" y2="25" stroke="rgba(0,200,255,0.25)" stroke-width="0.5"/>
+<text x="${mid-14}" y="36" text-anchor="middle" font-size="7" font-weight="bold" fill="rgba(100,180,255,0.5)" letter-spacing="2">AUTO-UPDATES DAILY ·</text>
+<text x="${mid+78}" y="36" text-anchor="middle" font-size="7" font-weight="bold" fill="rgba(0,255,100,0.9)" letter-spacing="2" filter="url(#glowS)">LIVE GITHUB DATA</text>`;
 }
 
 async function main(){
   console.log('🌌 Fetching GitHub data...');
   const user   = await get(`https://api.github.com/users/${USERNAME}`);
   const repos  = await get(`https://api.github.com/users/${USERNAME}/repos?per_page=100&sort=pushed`);
-  // Fetch 2 pages of events for better coverage
   const [ev1,ev2] = await Promise.all([
     get(`https://api.github.com/users/${USERNAME}/events?per_page=100&page=1`).catch(()=>[]),
     get(`https://api.github.com/users/${USERNAME}/events?per_page=100&page=2`).catch(()=>[]),
@@ -351,7 +352,6 @@ async function main(){
   const totalIssues = repos.reduce((s,r)=>s+r.open_issues_count,0);
   const langs = [...new Set(repos.map(r=>r.language).filter(Boolean))];
 
-  // Extract real commit messages for comets
   const pushEvents = recent.filter(e=>e.type==='PushEvent');
   const commitData = [];
   pushEvents.forEach(e=>{
