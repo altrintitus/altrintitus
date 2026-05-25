@@ -1,3 +1,3 @@
 <div align="center">
-  <img src="https://altrin7311.github.io/altrin7311/" width="860" height="480"/>
+<img src="galaxy.svg" width="860" height="480" alt="Altrin's Galaxy"/>
 </div>
