@@ -1,0 +1,27 @@
+name: 🌌 Update Galaxy
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Generate galaxy SVG
+        run: node generate-svg.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit if changed
+        run: |
+          git config user.name "Galaxy Bot 🌌"
+          git config user.email "bot@galaxy.dev"
+          git add galaxy.svg
+          git diff --staged --quiet || (git commit -m "🌌 Auto-update galaxy $(date -u +%Y-%m-%d)" && git push)
