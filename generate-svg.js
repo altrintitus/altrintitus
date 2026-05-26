@@ -1,6 +1,6 @@
 'use strict';
 const https=require('https'),fs=require('fs');
-const USER='altrin7311',TOKEN=process.env.GITHUB_TOKEN||'';
+const USER=process.env.GITHUB_OWNER||'altrin7311',TOKEN=process.env.GITHUB_TOKEN||'';
 const W=900,H=600,CX=310,CY=280;
 const TILT=-15*Math.PI/180,FLAT=0.25;
 const ORX=[70,125,180,235,285];
@@ -230,11 +230,25 @@ function svgTechStack(tech){
   return s;
 }
 
-function svgTitle(){return`<text x="${CX}" y="22" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="rgba(180,215,255,0.85)" letter-spacing="6">ALTRIN'S GALAXY</text><text x="${CX}" y="36" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(100,160,220,0.35)" letter-spacing="2">AUTO-UPDATES DAILY</text>`;}
+function svgTitle(name){
+  const firstName = name ? name.split(' ')[0].toUpperCase() : USER.toUpperCase();
+  const titleText = `${firstName}'S GALAXY`;
+  return`<text x="${CX}" y="22" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="rgba(180,215,255,0.85)" letter-spacing="6">${esc(titleText)}</text><text x="${CX}" y="36" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(100,160,220,0.35)" letter-spacing="2">AUTO-UPDATES DAILY</text>`;
+}
 
 async function main(){
   const{commitData,stats,techStack}=await fetchData();
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="auto" viewBox="0 0 ${W} ${H}">
+  
+  // Extract initials dynamically based on the fetched user's name
+  let initials = USER.substring(0, 2).toUpperCase();
+  if (stats.name) {
+    const parts = stats.name.split(' ');
+    initials = parts.length >= 2 
+      ? (parts[0][0] + parts[parts.length-1][0]).toUpperCase() 
+      : parts[0].substring(0, 2).toUpperCase();
+  }
+
+const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="auto" viewBox="0 0 ${W} ${H}">
 ${svgDefs(commitData)}
 ${svgBG()}
 ${svgStars()}
@@ -242,10 +256,10 @@ ${svgOrbits()}
 ${svgBelt()}
 ${svgComets(commitData)}
 ${svgPlanets(commitData)}
-${svgSun()}
+${svgSun(initials)}
 ${svgHUDLeft(stats)}
 ${svgTechStack(techStack)}
-${svgTitle()}
+${svgTitle(stats.name)}
 </svg>`;
   fs.writeFileSync('galaxy.svg',svg,'utf8');
   console.log('✅ Done!');
