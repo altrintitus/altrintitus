@@ -1,7 +1,7 @@
 'use strict';
 const https=require('https'),fs=require('fs');
 
-const USER='altrin7311'; // Make sure this is your username
+const USER='altrin7311'; 
 const TOKEN=process.env.GITHUB_TOKEN||''; 
 
 const W=900,H=600,CX=310,CY=280;
@@ -111,7 +111,6 @@ function svgDefs(P){
   d+=`<radialGradient id="nb0"><stop offset="0%" stop-color="#1a0a30" stop-opacity="0.5"/><stop offset="100%" stop-color="#1a0a30" stop-opacity="0"/></radialGradient>`;
   d+=`<radialGradient id="nb1"><stop offset="0%" stop-color="#0a1530" stop-opacity="0.4"/><stop offset="100%" stop-color="#0a1530" stop-opacity="0"/></radialGradient>`;
   
-  // SUN GRADIENTS
   d+=`<radialGradient id="sc1"><stop offset="0%" stop-color="#fff8e0" stop-opacity="0.5"/><stop offset="40%" stop-color="#ffaa00" stop-opacity="0.12"/><stop offset="100%" stop-color="transparent"/></radialGradient>`;
   d+=`<radialGradient id="sc2"><stop offset="0%" stop-color="#ffcc33" stop-opacity="0.55"/><stop offset="50%" stop-color="#ff7700" stop-opacity="0.15"/><stop offset="100%" stop-color="transparent"/></radialGradient>`;
   d+=`<radialGradient id="sc3"><stop offset="0%" stop-color="#ffdd66" stop-opacity="0.7"/><stop offset="60%" stop-color="#ff8800" stop-opacity="0.2"/><stop offset="100%" stop-color="transparent"/></radialGradient>`;
@@ -201,4 +200,152 @@ function svgPlanets(P){
     if(i===0){
       body=`<path d="M ${pr*1.8},0 A ${pr*1.8},${pr*.35} 0 0,1 ${-pr*1.8},0" fill="none" stroke="${c.f}" stroke-width="2.5" opacity="0.3"/><circle r="${pr}" fill="url(#pg${i})"/><path d="M ${-pr*1.8},0 A ${pr*1.8},${pr*.35} 0 0,1 ${pr*1.8},0" fill="none" stroke="${c.f}" stroke-width="2.5" opacity="0.55"/><path d="M ${-pr*1.5},0 A ${pr*1.5},${pr*.25} 0 0,1 ${pr*1.5},0" fill="none" stroke="${c.hi}" stroke-width="1.2" opacity="0.35"/>`;
     }else if(i===1){
-      body=`<circle r="${pr}" fill="url(#pg${i})"/><g clip-path="url(#cp${i})"><rect
+      body=`<circle r="${pr}" fill="url(#pg${i})"/><g clip-path="url(#cp${i})"><rect x="${-pr}" y="${-pr*.45}" width="${pr*2}" height="${pr*.2}" fill="rgba(0,0,0,0.12)" rx="1"/><rect x="${-pr}" y="${pr*.15}" width="${pr*2}" height="${pr*.25}" fill="rgba(255,255,255,0.06)" rx="1"/><rect x="${-pr}" y="${pr*.5}" width="${pr*2}" height="${pr*.18}" fill="rgba(0,0,0,0.1)" rx="1"/></g>`;
+    }else if(i===2){
+      body=`<circle r="${pr}" fill="url(#pg${i})"/><circle cx="${pr*.3}" cy="${pr*.15}" r="${pr*.3}" fill="rgba(180,60,0,0.22)"/><circle cx="${pr*.35}" cy="${pr*.2}" r="${pr*.16}" fill="rgba(220,80,0,0.18)"/>`;
+    }else if(i===3){
+      body=`<circle r="${pr+5}" fill="${c.g}" opacity="0.1"><animate attributeName="r" values="${pr+4};${pr+7};${pr+4}" dur="3s" repeatCount="indefinite"/></circle><circle r="${pr}" fill="url(#pg${i})"/><circle r="${pr}" fill="none" stroke="${c.hi}" stroke-width="1.8" opacity="0.2"/>`;
+    }else{
+      body=`<circle r="${pr}" fill="url(#pg${i})"/><line x1="${-pr*.3}" y1="${-pr*.6}" x2="${pr*.1}" y2="${-pr*.1}" stroke="rgba(255,255,255,0.22)" stroke-width="1.2"/><line x1="${pr*.2}" y1="${-pr*.5}" x2="${pr*.5}" y2="${pr*.1}" stroke="rgba(255,255,255,0.16)" stroke-width="1"/><circle cx="${-pr*.15}" cy="${-pr*.3}" r="${pr*.1}" fill="rgba(255,255,255,0.18)"/>`;
+    }
+    
+    let s=`<g><animateMotion dur="${dur}s" repeatCount="indefinite" rotate="0" calcMode="linear"><mpath href="#op${i}"/></animateMotion>`;
+    s+=`<circle r="${pr*3}" fill="url(#gw${i})" filter="url(#fg)" opacity="0.5"/>`;
+    s+=body;
+    s+=`<circle r="${pr*.45}" cx="${-pr*.28}" cy="${-pr*.28}" fill="rgba(255,255,255,0.1)"/>`;
+    s+=`<circle r="${pr}" fill="none" stroke="${c.g}" stroke-width="0.7" opacity="0.25"><animate attributeName="r" values="${pr};${pr+2};${pr}" dur="${3+i*.5}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.25;0.06;0.25" dur="${3+i*.5}s" repeatCount="indefinite"/></circle>`;
+    
+    if(p.forks>0){s+=`<g><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="${(dur*.12).toFixed(1)}s" repeatCount="indefinite"/><circle cx="${pr+8}" r="2" fill="#99aabb" opacity="0.6"/></g>`;}
+    s+=`<text y="${pr+13}" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,0.82)">${name}</text>`;
+    s+=`<text y="${pr+23}" text-anchor="middle" font-family="monospace" font-size="7" fill="${c.g}" opacity="0.55">${lang}</text>`;
+    return s+'</g>';
+  }).join('');
+}
+
+function svgComets(P){
+  let s='',ci=0;
+  P.slice(0,5).forEach((p,pi)=>{
+    const rx=ORX[pi],ry=Math.round(rx*FLAT),c=PCOL[pi];
+    p.msgs.forEach((msg,mi)=>{
+      if(ci>=12)return;
+      const angle=ANGS[pi]+mi*.8+.4,tp=orbitPt(rx,ry,angle);
+      const sx=Math.max(-30,tp.x-140-mi*15),sy=Math.max(5,tp.y-35-mi*10),dur=8+ci*.7,beg=ci*2.5;
+      
+      s+=`<g opacity="0"><animateMotion dur="${dur.toFixed(1)}s" begin="${beg.toFixed(1)}s" repeatCount="indefinite" rotate="auto" path="M ${sx.toFixed(1)},${sy.toFixed(1)} L ${tp.x.toFixed(1)},${tp.y.toFixed(1)}"/>
+<animate attributeName="opacity" values="0;0.9;0.9;0" keyTimes="0;0.06;0.88;1" dur="${dur.toFixed(1)}s" begin="${beg.toFixed(1)}s" repeatCount="indefinite"/>
+<circle r="2.5" fill="${c.g}"/><rect x="-44" y="-1.2" width="44" height="2.5" fill="url(#ct${pi})" rx="1.2"/>
+<text x="5" y="-4" font-family="monospace" font-size="6.5" fill="${c.g}" opacity="0.8">${esc(msg)}</text></g>`;
+      ci++;
+    });
+  });
+  return s;
+}
+
+// -----------------------------------------------------------
+// REMOVED "TOP REPOS" & SHRUNK HEIGHT TO FIT
+// -----------------------------------------------------------
+function svgHUDLeft(stats,P){
+  // Height strictly reduced to 170 to remove the empty space at the bottom
+  const x=16,y=H-185,w=280,h=170;
+  let s=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="rgba(6,10,22,0.94)" stroke="rgba(80,130,220,0.12)" stroke-width="0.6"/>`;
+  s+=`<rect x="${x+1}" y="${y+1}" width="${w-2}" height="34" rx="9" fill="rgba(50,100,200,0.05)"/>`;
+  
+  let cy=y+22;
+  s+=`<text x="${x+16}" y="${cy}" font-family="monospace" font-size="11" font-weight="bold" fill="rgba(230,240,255,0.92)">${esc(stats.name)}</text>`;
+  s+=`<text x="${x+w-16}" y="${cy}" text-anchor="end" font-family="monospace" font-size="8.5" fill="rgba(120,160,220,0.5)">@${USER}</text>`;
+  cy+=22;s+=`<line x1="${x+12}" y1="${cy}" x2="${x+w-12}" y2="${cy}" stroke="rgba(80,140,220,0.08)" stroke-width="0.5"/>`;cy+=18;
+  
+  const statItems=[['Repos',stats.repos],['Stars',stats.stars],['Since',stats.since]];
+  statItems.forEach(([l,v],i)=>{
+    const bx=x+16+i*90; 
+    s+=`<text x="${bx}" y="${cy}" font-family="monospace" font-size="8" fill="rgba(140,170,220,0.5)">${l}</text>`;
+    s+=`<text x="${bx}" y="${cy+14}" font-family="monospace" font-size="10" font-weight="bold" fill="rgba(220,240,255,0.9)">${v}</text>`;
+  });
+  cy+=32;s+=`<line x1="${x+12}" y1="${cy}" x2="${x+w-12}" y2="${cy}" stroke="rgba(80,140,220,0.08)" stroke-width="0.5"/>`;cy+=16;
+  
+  s+=`<text x="${x+16}" y="${cy}" font-family="monospace" font-size="8.5" font-weight="bold" fill="rgba(100,170,255,0.6)" letter-spacing="1.5">LAST 30 DAYS</text>`;cy+=18;
+  [['Commits',stats.commits],['PRs',stats.prs],['Issues',stats.issues]].forEach(([l,v],i)=>{
+    const bx=x+16+i*90;
+    s+=`<text x="${bx}" y="${cy}" font-family="monospace" font-size="8" fill="rgba(140,170,220,0.5)">${l}</text>`;
+    s+=`<text x="${bx}" y="${cy+14}" font-family="monospace" font-size="10" font-weight="bold" fill="rgba(220,240,255,0.9)">${v}</text>`;
+  });
+  
+  return s;
+}
+
+// -----------------------------------------------------------
+// FLAWLESS DYNAMIC HEIGHT/WRAPPING FOR TECH STACK
+// -----------------------------------------------------------
+function svgTechStack(tech){
+  const px=610,py=16,pw=275;
+  let s='',cy=py;
+  
+  s+=`<rect x="${px}" y="${py}" width="${pw}" height="32" rx="8" fill="rgba(6,10,22,0.94)" stroke="rgba(80,130,220,0.12)" stroke-width="0.6"/>`;
+  s+=`<text x="${px+16}" y="${py+20}" font-family="monospace" font-size="11" font-weight="bold" fill="rgba(100,180,255,0.75)" letter-spacing="2">TECH STACK</text>`;
+  cy+=42;
+  
+  Object.entries(tech).forEach(([cat,items])=>{
+    if(!items||items.length===0)return;
+    
+    // 1. Pre-calculate the exact height needed by simulating the word-wrap
+    let testBx=px+14, testCy=32; 
+    items.forEach(item=>{
+      const tw=item.length*6+20; // 20px padding (10 on each side)
+      if(testBx+tw > px+pw-14){
+        testBx=px+14;
+        testCy+=28; // Drop to next line
+      }
+      testBx+=tw+8; // Horizontal gap between badges
+    });
+    
+    // The exact dynamic height of the box
+    const cardH=testCy+20; 
+    
+    // 2. Draw the dynamically sized box
+    s+=`<rect x="${px}" y="${cy}" width="${pw}" height="${cardH}" rx="8" fill="rgba(6,10,22,0.94)" stroke="rgba(80,130,220,0.1)" stroke-width="0.5"/>`;
+    s+=`<text x="${px+14}" y="${cy+16}" font-family="monospace" font-size="8.5" fill="rgba(130,160,210,0.65)">${esc(cat)}</text>`;
+    
+    // 3. Draw the badges using the exact same wrapping logic
+    let bx=px+14, badgeCy=cy+32;
+    items.forEach(item=>{
+      const tw=item.length*6+20;
+      if(bx+tw > px+pw-14){
+        bx=px+14;
+        badgeCy+=28;
+      }
+      s+=`<rect x="${bx}" y="${badgeCy}" width="${tw}" height="20" rx="5" fill="rgba(60,120,220,0.07)" stroke="rgba(80,140,255,0.18)" stroke-width="0.5"/>`;
+      s+=`<text x="${bx+tw/2}" y="${badgeCy+13.5}" text-anchor="middle" font-family="monospace" font-size="8" fill="rgba(180,210,255,0.88)">${esc(item)}</text>`;
+      bx+=tw+8; 
+    });
+    
+    // Push the overall Y coordinate down perfectly for the next category
+    cy+=cardH+12; 
+  });
+  return s;
+}
+
+function svgTitle(){
+  return`<text x="${CX}" y="22" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="rgba(180,215,255,0.85)" letter-spacing="6">ALTRIN'S GALAXY</text>
+<text x="${CX}" y="36" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(100,160,220,0.35)" letter-spacing="2">AUTO-UPDATES DAILY</text>`;
+}
+
+async function main(){
+  const{commitData,stats,techStack}=await fetchData();
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="auto" viewBox="0 0 ${W} ${H}">
+${svgDefs(commitData)}
+${svgBG()}
+${svgStars()}
+${svgOrbits()}
+${svgBelt()}
+${svgComets(commitData)}
+${svgPlanets(commitData)}
+${svgSun()}
+${svgHUDLeft(stats,commitData)}
+${svgTechStack(techStack)}
+${svgTitle()}
+</svg>`;
+  fs.writeFileSync('galaxy.svg',svg,'utf8');
+  console.log('✅ Done!');
+}
+
+main().catch(e=>{console.error('❌',e.message);process.exit(1);});
