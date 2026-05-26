@@ -12,13 +12,17 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          
       - name: Generate galaxy SVG
-        run: node generate-svg.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_OWNER: ${{ github.repository_owner }} # Passes the dynamic username to your script
+        run: node generate-svg.js
+        
       - name: Commit if changed
         run: |
           git config user.name "Galaxy Bot 🌌"
