@@ -1,12 +1,12 @@
 'use strict';
 const https=require('https'),fs=require('fs');
 const USER='altrin7311',TOKEN=process.env.GITHUB_TOKEN||'';
-const W=900,H=380,CX=265,CY=200;
+const W=900,H=560,CX=265,CY=290;
 const TILT=-15*Math.PI/180,FLAT=0.25;
 const ORX=[65,120,175,230,280];
 const SPEEDS=[11,17,24,33,44];
 const ANGS=[0.4,1.5,2.8,4.0,5.2];
-const PRADII_BASE=[18,15,13,11,9];
+const PRADII_BASE=[22,18,16,14,11];
 const PCOL=[
   {hi:'#FF9999',f:'#FF4D4D',dk:'#AA1111',g:'#FF5555'},
   {hi:'#66EDE5',f:'#20C9B0',dk:'#0A8A6E',g:'#30D4C0'},
@@ -158,7 +158,7 @@ function svgSun(){
   return`<circle cx="${CX}" cy="${CY}" r="65" fill="url(#sgl)" filter="url(#fb)"><animate attributeName="r" values="60;72;60" dur="4s" repeatCount="indefinite"/></circle>
 <circle cx="${CX}" cy="${CY}" r="18" fill="url(#sg)"><animate attributeName="r" values="17;19;17" dur="3.5s" repeatCount="indefinite"/></circle>
 <circle cx="${CX-4}" cy="${CY-4}" r="7" fill="rgba(255,255,230,0.12)"/>
-<text x="${CX}" y="${CY+4}" text-anchor="middle" font-family="monospace" font-size="9" font-weight="bold" fill="#050510">AT</text>`;
+<text x="${CX}" y="${CY+4}" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#050510">AT</text>`;
 }
 
 function svgPlanets(P){
@@ -196,8 +196,8 @@ function svgPlanets(P){
     s+=`<circle r="${pr*.45}" cx="${-pr*.28}" cy="${-pr*.28}" fill="rgba(255,255,255,0.1)"/>`;
     s+=`<circle r="${pr}" fill="none" stroke="${c.g}" stroke-width="0.7" opacity="0.25"><animate attributeName="r" values="${pr};${pr+2};${pr}" dur="${3+i*.5}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.25;0.06;0.25" dur="${3+i*.5}s" repeatCount="indefinite"/></circle>`;
     if(p.forks>0){const mo=pr+8;s+=`<g><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="${(dur*.12).toFixed(1)}s" repeatCount="indefinite"/><circle cx="${mo}" r="2" fill="#99aabb" opacity="0.6"/></g>`;}
-    s+=`<text y="${pr+12}" text-anchor="middle" font-family="monospace" font-size="8" fill="rgba(255,255,255,0.8)">${name}</text>`;
-    s+=`<text y="${pr+21}" text-anchor="middle" font-family="monospace" font-size="6" fill="${c.g}" opacity="0.55">${lang}</text>`;
+    s+=`<text y="${pr+12}" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,0.82)">${name}</text>`;
+    s+=`<text y="${pr+21}" text-anchor="middle" font-family="monospace" font-size="7" fill="${c.g}" opacity="0.55">${lang}</text>`;
     return s+'</g>';
   }).join('');
 }
@@ -219,83 +219,83 @@ function svgComets(P){
 <animate attributeName="opacity" values="0;0.9;0.9;0" keyTimes="0;0.06;0.88;1" dur="${dur.toFixed(1)}s" begin="${beg.toFixed(1)}s" repeatCount="indefinite"/>
 <circle r="2.5" fill="${c.g}"/>
 <rect x="-44" y="-1.2" width="44" height="2.5" fill="url(#ct${pi})" rx="1.2"/>
-<text x="5" y="-4" font-family="monospace" font-size="5.5" fill="${c.g}" opacity="0.8">${esc(msg)}</text>
+<text x="5" y="-4" font-family="monospace" font-size="6.5" fill="${c.g}" opacity="0.8">${esc(msg)}</text>
 </g>`;ci++;});
   });
   return s;
 }
 
 function svgHUD(stats,tech){
-  const px=572,py=10,pw=318,ph=360;
+  const px=572,py=14,pw=318,ph=535;
   let s='';
   // Panel
   s+=`<rect x="${px}" y="${py}" width="${pw}" height="${ph}" rx="8" fill="rgba(6,10,22,0.96)" stroke="rgba(80,130,220,0.12)" stroke-width="0.6"/>`;
   // Name area
   s+=`<rect x="${px+1}" y="${py+1}" width="${pw-2}" height="40" rx="7" fill="rgba(50,100,200,0.06)"/>`;
   let cy=py+20;
-  s+=`<text x="${px+14}" y="${cy}" font-family="monospace" font-size="11" font-weight="bold" fill="rgba(230,240,255,0.95)">${esc(stats.name)}</text>`;
-  cy+=13;
-  s+=`<text x="${px+14}" y="${cy}" font-family="monospace" font-size="7.5" fill="rgba(120,160,220,0.6)">@${USER}  ·  ${stats.followers} followers  ·  ${stats.following} following</text>`;
-  cy+=18;
+  s+=`<text x="${px+14}" y="${cy}" font-family="monospace" font-size="13" font-weight="bold" fill="rgba(230,240,255,0.95)">${esc(stats.name)}</text>`;
+  cy+=16;
+  s+=`<text x="${px+14}" y="${cy}" font-family="monospace" font-size="9" fill="rgba(120,160,220,0.6)">@${USER}  ·  ${stats.followers} followers  ·  ${stats.following} following</text>`;
+  cy+=22;
   // Divider
   s+=`<line x1="${px+10}" y1="${cy}" x2="${px+pw-10}" y2="${cy}" stroke="rgba(80,140,220,0.08)" stroke-width="0.5"/>`;
-  cy+=14;
+  cy+=17;
   // OVERVIEW
-  s+=`<text x="${px+14}" y="${cy}" font-family="monospace" font-size="7.5" font-weight="bold" fill="rgba(100,170,255,0.65)" letter-spacing="1.5">OVERVIEW</text>`;
-  cy+=13;
+  s+=`<text x="${px+14}" y="${cy}" font-family="monospace" font-size="9" font-weight="bold" fill="rgba(100,170,255,0.7)" letter-spacing="2">OVERVIEW</text>`;
+  cy+=16;
   [['Repos',stats.repos],['Stars',stats.stars],['Active since',stats.since]].forEach(([l,v])=>{
-    s+=`<text x="${px+14}" y="${cy}" font-family="monospace" font-size="7.5" fill="rgba(160,190,230,0.6)">${l}</text>`;
-    s+=`<text x="${px+pw-14}" y="${cy}" text-anchor="end" font-family="monospace" font-size="7.5" font-weight="bold" fill="rgba(220,240,255,0.9)">${v}</text>`;
-    cy+=12;
+    s+=`<text x="${px+14}" y="${cy}" font-family="monospace" font-size="8.5" fill="rgba(160,190,230,0.65)">${l}</text>`;
+    s+=`<text x="${px+pw-14}" y="${cy}" text-anchor="end" font-family="monospace" font-size="8.5" font-weight="bold" fill="rgba(220,240,255,0.92)">${v}</text>`;
+    cy+=15;
   });
-  cy+=5;
+  cy+=8;
   s+=`<line x1="${px+10}" y1="${cy}" x2="${px+pw-10}" y2="${cy}" stroke="rgba(80,140,220,0.08)" stroke-width="0.5"/>`;
-  cy+=12;
+  cy+=15;
   // LAST 30 DAYS
-  s+=`<text x="${px+14}" y="${cy}" font-family="monospace" font-size="7.5" font-weight="bold" fill="rgba(100,170,255,0.65)" letter-spacing="1.5">LAST 30 DAYS</text>`;
-  cy+=13;
+  s+=`<text x="${px+14}" y="${cy}" font-family="monospace" font-size="9" font-weight="bold" fill="rgba(100,170,255,0.7)" letter-spacing="2">LAST 30 DAYS</text>`;
+  cy+=16;
   [['Commits',stats.commits],['PRs merged',stats.prs],['Open issues',stats.issues]].forEach(([l,v])=>{
-    s+=`<text x="${px+14}" y="${cy}" font-family="monospace" font-size="7.5" fill="rgba(160,190,230,0.6)">${l}</text>`;
-    s+=`<text x="${px+pw-14}" y="${cy}" text-anchor="end" font-family="monospace" font-size="7.5" font-weight="bold" fill="rgba(220,240,255,0.9)">${v}</text>`;
-    cy+=12;
+    s+=`<text x="${px+14}" y="${cy}" font-family="monospace" font-size="8.5" fill="rgba(160,190,230,0.65)">${l}</text>`;
+    s+=`<text x="${px+pw-14}" y="${cy}" text-anchor="end" font-family="monospace" font-size="8.5" font-weight="bold" fill="rgba(220,240,255,0.92)">${v}</text>`;
+    cy+=15;
   });
-  cy+=5;
+  cy+=8;
   s+=`<line x1="${px+10}" y1="${cy}" x2="${px+pw-10}" y2="${cy}" stroke="rgba(80,140,220,0.08)" stroke-width="0.5"/>`;
-  cy+=12;
+  cy+=15;
   // TECH STACK
-  s+=`<text x="${px+14}" y="${cy}" font-family="monospace" font-size="7.5" font-weight="bold" fill="rgba(100,170,255,0.65)" letter-spacing="1.5">TECH STACK</text>`;
-  cy+=6;
+  s+=`<text x="${px+14}" y="${cy}" font-family="monospace" font-size="9" font-weight="bold" fill="rgba(100,170,255,0.7)" letter-spacing="2">TECH STACK</text>`;
+  cy+=8;
   Object.entries(tech).forEach(([cat,items])=>{
     if(!items||items.length===0)return;
-    cy+=10;
-    s+=`<text x="${px+14}" y="${cy}" font-family="monospace" font-size="6.5" fill="rgba(130,160,210,0.5)">${esc(cat)}</text>`;
+    cy+=13;
+    s+=`<text x="${px+14}" y="${cy}" font-family="monospace" font-size="7.5" fill="rgba(130,160,210,0.55)">${esc(cat)}</text>`;
     cy+=8;
     let bx=px+14;
     const maxX=px+pw-14;
     items.forEach(item=>{
-      const tw=item.length*4.8+10;
-      if(bx+tw>maxX){bx=px+14;cy+=17;}
-      s+=`<rect x="${bx}" y="${cy}" width="${tw}" height="14" rx="3.5" fill="rgba(60,120,220,0.08)" stroke="rgba(80,140,255,0.18)" stroke-width="0.5"/>`;
-      s+=`<text x="${bx+tw/2}" y="${cy+10}" text-anchor="middle" font-family="monospace" font-size="6.5" fill="rgba(180,210,255,0.85)">${esc(item)}</text>`;
+      const tw=item.length*5.5+12;
+      if(bx+tw>maxX){bx=px+14;cy+=21;}
+      s+=`<rect x="${bx}" y="${cy}" width="${tw}" height="17" rx="4" fill="rgba(60,120,220,0.08)" stroke="rgba(80,140,255,0.18)" stroke-width="0.5"/>`;
+      s+=`<text x="${bx+tw/2}" y="${cy+12}" text-anchor="middle" font-family="monospace" font-size="7.5" fill="rgba(180,210,255,0.88)">${esc(item)}</text>`;
       bx+=tw+4;
     });
-    cy+=18;
+    cy+=22;
   });
   return s;
 }
 
 function svgTitle(){
-  return`<text x="${CX}" y="18" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="rgba(180,215,255,0.85)" letter-spacing="5">ALTRIN'S GALAXY</text>
-<text x="${CX}" y="30" text-anchor="middle" font-family="monospace" font-size="6.5" fill="rgba(100,160,220,0.35)" letter-spacing="2">AUTO-UPDATES DAILY</text>`;
+  return`<text x="${CX}" y="18" text-anchor="middle" font-family="monospace" font-size="13" font-weight="bold" fill="rgba(180,215,255,0.85)" letter-spacing="5">ALTRIN'S GALAXY</text>
+<text x="${CX}" y="30" text-anchor="middle" font-family="monospace" font-size="7.5" fill="rgba(100,160,220,0.38)" letter-spacing="2">AUTO-UPDATES DAILY</text>`;
 }
 
 function svgLegend(P){
-  const lx=12,ly=H-58;
-  let s=`<text x="${lx}" y="${ly}" font-family="monospace" font-size="6.5" fill="rgba(150,190,255,0.4)" letter-spacing="1">TOP REPOS</text>`;
+  const lx=12,ly=H-64;
+  let s=`<text x="${lx}" y="${ly}" font-family="monospace" font-size="7.5" fill="rgba(150,190,255,0.45)" letter-spacing="1">TOP REPOS</text>`;
   P.slice(0,5).forEach((p,i)=>{
     const c=PCOL[i],y=ly+10+i*9;
     s+=`<circle cx="${lx+4}" cy="${y-2.5}" r="2.5" fill="${c.f}"/>`;
-    s+=`<text x="${lx+11}" y="${y}" font-family="monospace" font-size="6" fill="rgba(200,220,255,0.6)">${esc(p.name.slice(0,12))} · ${p.count}</text>`;
+    s+=`<text x="${lx+11}" y="${y}" font-family="monospace" font-size="7" fill="rgba(200,220,255,0.65)">${esc(p.name.slice(0,12))} · ${p.count}</text>`;
   });
   return s;
 }
