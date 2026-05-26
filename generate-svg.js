@@ -1,16 +1,13 @@
 'use strict';
 const https=require('https'),fs=require('fs');
-
-const USER='altrin7311'; 
-const TOKEN=process.env.GITHUB_TOKEN||''; 
-
+const USER='altrin7311',TOKEN=process.env.GITHUB_TOKEN||'';
 const W=900,H=600,CX=310,CY=280;
 const TILT=-15*Math.PI/180,FLAT=0.25;
 const ORX=[70,125,180,235,285];
 const SPEEDS=[11,17,24,33,44];
 const ANGS=[0.4,1.5,2.8,4.0,5.2];
 const PBR=[22,18,16,14,11];
-
+const MAX_TECH_H=560; // if tech panel exceeds this, start pruning
 const PCOL=[
   {hi:'#FF9999',f:'#FF4D4D',dk:'#AA1111',g:'#FF5555'},
   {hi:'#66EDE5',f:'#20C9B0',dk:'#0A8A6E',g:'#30D4C0'},
@@ -18,19 +15,35 @@ const PCOL=[
   {hi:'#D8B4FE',f:'#A855F7',dk:'#6B21A8',g:'#B06AF0'},
   {hi:'#93C5FD',f:'#3B82F6',dk:'#1E40AF',g:'#5599FF'},
 ];
+// Subtle tints per category
+const CAT_TINT={
+  'Languages':     {f:'rgba(70,140,255,0.08)',  s:'rgba(70,140,255,0.2)'},
+  'AI & ML':       {f:'rgba(150,70,255,0.08)',  s:'rgba(150,70,255,0.2)'},
+  'Frameworks':    {f:'rgba(50,200,130,0.08)',  s:'rgba(50,200,130,0.2)'},
+  'Databases':     {f:'rgba(230,170,40,0.07)',  s:'rgba(230,170,40,0.16)'},
+  'DevOps & Tools':{f:'rgba(50,190,210,0.07)', s:'rgba(50,190,210,0.16)'},
+};
 
-function get(u){return new Promise((r,j)=>{const o={headers:{'User-Agent':'galaxy/7','Accept':'application/vnd.github.v3+json',...(TOKEN?{Authorization:`token ${TOKEN}`}:{})}};https.get(u,o,s=>{let d='';s.on('data',c=>d+=c);s.on('end',()=>{try{r(JSON.parse(d))}catch(e){j(e)}})}).on('error',j);});}
+function get(u){return new Promise((r,j)=>{const o={headers:{'User-Agent':'galaxy/8','Accept':'application/vnd.github.v3+json',...(TOKEN?{Authorization:`token ${TOKEN}`}:{})}};https.get(u,o,s=>{let d='';s.on('data',c=>d+=c);s.on('end',()=>{try{r(JSON.parse(d))}catch(e){j(e)}})}).on('error',j);});}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function prng(seed){let s=seed|0;return()=>{s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 function orbitPt(rx,ry,t){const c=Math.cos(TILT),s=Math.sin(TILT),ex=rx*Math.cos(t),ey=ry*Math.sin(t);return{x:CX+ex*c-ey*s,y:CY+ex*s+ey*c};}
 function orbitPath(rx,ry,st=0,n=80){return Array.from({length:n+1},(_,i)=>{const t=st+(i/n)*2*Math.PI,p=orbitPt(rx,ry,t);return`${i===0?'M':'L'}${p.x.toFixed(2)},${p.y.toFixed(2)}`}).join(' ')+' Z';}
 
 const TECH_DB={
-  'AI & ML':[['openai','OpenAI'],['langchain','LangChain'],['tensorflow','TensorFlow'],['pytorch','PyTorch'],['hugging','HuggingFace'],['scikit','Scikit-Learn'],['transformers','Transformers'],['llm','LLMs'],['gpt','GPT'],['gemini','Gemini'],['anthropic','Claude'],['machine.learning','ML'],['deep.learning','DL'],['pandas','Pandas'],['numpy','NumPy'],['keras','Keras'],['opencv','OpenCV'],['matplotlib','Matplotlib'],['jupyter','Jupyter'],['nltk','NLTK'],['spacy','SpaCy']],
+  'AI & ML':[['openai','OpenAI'],['langchain','LangChain'],['tensorflow','TensorFlow'],['pytorch','PyTorch'],['hugging','HuggingFace'],['scikit','Scikit-Learn'],['transformers','Transformers'],['llm','LLMs'],['gpt','GPT'],['gemini','Gemini'],['anthropic','Claude'],['pandas','Pandas'],['numpy','NumPy'],['keras','Keras'],['opencv','OpenCV'],['matplotlib','Matplotlib'],['jupyter','Jupyter'],['nltk','NLTK']],
   'Frameworks':[['react','React'],['vue','Vue'],['angular','Angular'],['flask','Flask'],['django','Django'],['fastapi','FastAPI'],['express','Express'],['next','Next.js'],['svelte','Svelte'],['tailwind','Tailwind'],['bootstrap','Bootstrap'],['streamlit','Streamlit'],['gradio','Gradio'],['laravel','Laravel'],['electron','Electron']],
   'Databases':[['postgres','PostgreSQL'],['mysql','MySQL'],['mongodb','MongoDB'],['mongo','MongoDB'],['sqlite','SQLite'],['redis','Redis'],['firebase','Firebase'],['supabase','Supabase'],['prisma','Prisma'],['dynamodb','DynamoDB'],['neo4j','Neo4j']],
-  'DevOps & Tools':[['docker','Docker'],['kubernetes','K8s'],['aws','AWS'],['gcp','GCP'],['azure','Azure'],['heroku','Heroku'],['vercel','Vercel'],['netlify','Netlify'],['github.actions','Actions'],['ci/cd','CI/CD'],['terraform','Terraform'],['nginx','Nginx'],['linux','Linux'],['pip','pip'],['conda','Conda'],['selenium','Selenium'],['playwright','Playwright'],['pytest','Pytest'],['jest','Jest'],['vite','Vite'],['graphql','GraphQL'],['celery','Celery'],['poetry','Poetry']],
+  'DevOps & Tools':[['docker','Docker'],['kubernetes','K8s'],['aws','AWS'],['gcp','GCP'],['azure','Azure'],['heroku','Heroku'],['vercel','Vercel'],['netlify','Netlify'],['github.actions','Actions'],['ci/cd','CI/CD'],['terraform','Terraform'],['nginx','Nginx'],['linux','Linux'],['pip','pip'],['selenium','Selenium'],['playwright','Playwright'],['pytest','Pytest'],['vite','Vite'],['graphql','GraphQL'],['celery','Celery'],['poetry','Poetry']],
 };
+
+// Simulates tech stack height to decide if pruning is needed
+function measureTechH(tech){
+  const pw=275,pad=14,badgeH=20,gapX=6,gapY=6,padX=10,charW=5.8;
+  let cy=56;
+  Object.entries(tech).forEach(([,items])=>{if(!items||!items.length)return;let bx=610+pad,rows=1;items.forEach(it=>{const tw=Math.ceil(it.length*charW)+padX*2;if(bx+tw>610+pw-pad){bx=610+pad;rows++;}bx+=tw+gapX;});cy+=22+rows*(badgeH+gapY)+8+8;});
+  return cy;
+}
 
 async function fetchData(){
   console.log('🌌 Fetching...');
@@ -41,9 +54,7 @@ async function fetchData(){
   const commitData=await Promise.all(nonFork.map(async r=>{
     const c=await get(`https://api.github.com/repos/${USER}/${r.name}/commits?since=${since}&author=${USER}&per_page=100`).catch(()=>[]);
     const a=Array.isArray(c)?c:[];
-    return{name:r.name,lang:r.language||'Other',count:a.length,
-      msgs:a.slice(0,4).map(x=>(x.commit?.message||'update').split('\n')[0].slice(0,22)),
-      size:r.size,stars:r.stargazers_count,forks:r.forks_count};
+    return{name:r.name,lang:r.language||'Other',count:a.length,msgs:a.slice(0,4).map(x=>(x.commit?.message||'update').split('\n')[0].slice(0,22)),size:r.size,stars:r.stargazers_count,forks:r.forks_count};
   }));
   commitData.sort((a,b)=>b.count-a.count||b.size-a.size);
   const allLangs={};
@@ -55,13 +66,19 @@ async function fetchData(){
   const techStack={};
   techStack['Languages']=Object.entries(allLangs).sort((a,b)=>b[1]-a[1]).map(e=>e[0]).slice(0,8);
   Object.entries(TECH_DB).forEach(([cat,pairs])=>{const found=pairs.filter(([kw])=>corpus.includes(kw)).map(([,d])=>d);if(found.length>0)techStack[cat]=[...new Set(found)].slice(0,10);});
+  // Auto-prune if tech stack would overflow: trim longest categories first
+  while(measureTechH(techStack)>MAX_TECH_H){
+    let longest=null,maxLen=0;
+    Object.entries(techStack).forEach(([cat,items])=>{if(items&&items.length>maxLen){maxLen=items.length;longest=cat;}});
+    if(longest&&techStack[longest].length>2)techStack[longest].pop();
+    else break;
+  }
   const totalStars=repos.reduce((s,r)=>s+r.stargazers_count,0);
   const totalIssues=repos.reduce((s,r)=>s+r.open_issues_count,0);
   const totalC=commitData.reduce((s,r)=>s+r.count,0);
   const events=await get(`https://api.github.com/users/${USER}/events?per_page=100`).catch(()=>[]);
   let prs=0;if(Array.isArray(events))prs=events.filter(e=>e.type==='PullRequestEvent'&&e.payload?.action==='closed'&&e.payload?.pull_request?.merged&&new Date(e.created_at).getTime()>Date.now()-30*864e5).length;
   const stats={repos:user.public_repos,stars:totalStars,followers:user.followers,following:user.following,since:new Date(user.created_at).getFullYear(),commits:totalC,prs,issues:totalIssues,name:user.name||USER};
-  console.log('Planets:',commitData.map(r=>`${r.name}(${r.count})`).join(', '));
   return{commitData,stats,techStack};
 }
 
@@ -72,16 +89,22 @@ function svgDefs(P){
   d+=`<radialGradient id="bgr" cx="35%" cy="50%" r="70%"><stop offset="0%" stop-color="#0d0d24"/><stop offset="100%" stop-color="#020210"/></radialGradient>`;
   d+=`<radialGradient id="nb0"><stop offset="0%" stop-color="#1a0a30" stop-opacity="0.5"/><stop offset="100%" stop-color="#1a0a30" stop-opacity="0"/></radialGradient>`;
   d+=`<radialGradient id="nb1"><stop offset="0%" stop-color="#0a1530" stop-opacity="0.4"/><stop offset="100%" stop-color="#0a1530" stop-opacity="0"/></radialGradient>`;
-  d+=`<radialGradient id="sc1"><stop offset="0%" stop-color="#fff8e0" stop-opacity="0.5"/><stop offset="40%" stop-color="#ffaa00" stop-opacity="0.12"/><stop offset="100%" stop-color="transparent"/></radialGradient>`;
-  d+=`<radialGradient id="sc2"><stop offset="0%" stop-color="#ffcc33" stop-opacity="0.55"/><stop offset="50%" stop-color="#ff7700" stop-opacity="0.15"/><stop offset="100%" stop-color="transparent"/></radialGradient>`;
-  d+=`<radialGradient id="sc3"><stop offset="0%" stop-color="#ffdd66" stop-opacity="0.7"/><stop offset="60%" stop-color="#ff8800" stop-opacity="0.2"/><stop offset="100%" stop-color="transparent"/></radialGradient>`;
-  d+=`<radialGradient id="sb" cx="42%" cy="35%" r="58%"><stop offset="0%" stop-color="#ffffff"/><stop offset="25%" stop-color="#fff8d0"/><stop offset="55%" stop-color="#ffaa22"/><stop offset="85%" stop-color="#dd5500"/><stop offset="100%" stop-color="#441100"/></radialGradient>`;
-  d+=`<radialGradient id="sco"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/><stop offset="50%" stop-color="#fff4cc" stop-opacity="0.5"/><stop offset="100%" stop-color="#ffcc44" stop-opacity="0"/></radialGradient>`;
+  // Sun coronas
+  d+=`<radialGradient id="sc1"><stop offset="0%" stop-color="#fff4d0" stop-opacity="0.45"/><stop offset="30%" stop-color="#ffaa00" stop-opacity="0.12"/><stop offset="100%" stop-color="transparent"/></radialGradient>`;
+  d+=`<radialGradient id="sc2"><stop offset="0%" stop-color="#ffcc22" stop-opacity="0.5"/><stop offset="40%" stop-color="#ff7700" stop-opacity="0.15"/><stop offset="100%" stop-color="transparent"/></radialGradient>`;
+  d+=`<radialGradient id="sc3"><stop offset="0%" stop-color="#ffdd55" stop-opacity="0.65"/><stop offset="50%" stop-color="#ff8800" stop-opacity="0.2"/><stop offset="100%" stop-color="transparent"/></radialGradient>`;
+  // Richer sun body
+  d+=`<radialGradient id="sb" cx="40%" cy="34%" r="60%"><stop offset="0%" stop-color="#ffffff"/><stop offset="12%" stop-color="#fff8d0"/><stop offset="28%" stop-color="#ffcc44"/><stop offset="48%" stop-color="#ff8811"/><stop offset="68%" stop-color="#cc4400"/><stop offset="85%" stop-color="#882200"/><stop offset="100%" stop-color="#331100"/></radialGradient>`;
+  d+=`<radialGradient id="sco"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="40%" stop-color="#fff4cc" stop-opacity="0.5"/><stop offset="100%" stop-color="#ffcc44" stop-opacity="0"/></radialGradient>`;
+  // Sun surface noise gradient
+  d+=`<radialGradient id="sn1" cx="30%" cy="40%"><stop offset="0%" stop-color="#ffaa22" stop-opacity="0.3"/><stop offset="100%" stop-color="#cc5500" stop-opacity="0"/></radialGradient>`;
+  d+=`<radialGradient id="sn2" cx="70%" cy="60%"><stop offset="0%" stop-color="#ff8800" stop-opacity="0.25"/><stop offset="100%" stop-color="#993300" stop-opacity="0"/></radialGradient>`;
+  // Planet stuff
   P.forEach((p,i)=>{const c=PCOL[i];
     d+=`<radialGradient id="pg${i}" cx="32%" cy="26%" r="65%"><stop offset="0%" stop-color="${c.hi}"/><stop offset="50%" stop-color="${c.f}"/><stop offset="100%" stop-color="${c.dk}"/></radialGradient>`;
     d+=`<radialGradient id="gw${i}"><stop offset="0%" stop-color="${c.g}" stop-opacity="0.6"/><stop offset="100%" stop-color="${c.g}" stop-opacity="0"/></radialGradient>`;
     d+=`<linearGradient id="ct${i}" x1="100%" y1="0%" x2="0%" y2="0%"><stop offset="0%" stop-color="${c.g}" stop-opacity="0.9"/><stop offset="100%" stop-color="${c.g}" stop-opacity="0"/></linearGradient>`;
-    const r=pR(P,i);d+=`<clipPath id="cp${i}"><circle r="${r}"/></clipPath>`;
+    d+=`<clipPath id="cp${i}"><circle r="${pR(P,i)}"/></clipPath>`;
   });
   d+=`<filter id="fb" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="16"/></filter>`;
   d+=`<filter id="fm" x="-150%" y="-150%" width="400%" height="400%"><feGaussianBlur stdDeviation="10"/></filter>`;
@@ -92,35 +115,54 @@ function svgDefs(P){
 }
 
 function svgBG(){return`<rect width="${W}" height="${H}" fill="url(#bgr)"/><ellipse cx="${CX-40}" cy="${CY-40}" rx="320" ry="200" fill="url(#nb0)"/><ellipse cx="${CX+120}" cy="${CY+80}" rx="280" ry="180" fill="url(#nb1)"/>`;}
-
-function svgStars(){const rng=prng(8888);let s='';
-  for(let i=0;i<240;i++){const x=(rng()*W).toFixed(1),y=(rng()*H).toFixed(1),sz=rng()<.08?1.5:rng()<.3?.9:.4,op=(.2+rng()*.6).toFixed(2),dur=(1.5+rng()*5).toFixed(1),beg=(rng()*8).toFixed(1);
-    s+=`<circle cx="${x}" cy="${y}" r="${sz}" fill="${rng()<.15?'#ffe8cc':'white'}" opacity="${op}"><animate attributeName="opacity" values="${op};${(+op*.08).toFixed(2)};${op}" dur="${dur}s" begin="${beg}s" repeatCount="indefinite"/></circle>`;}
-  return`<g>${s}</g>`;}
-
+function svgStars(){const rng=prng(8888);let s='';for(let i=0;i<240;i++){const x=(rng()*W).toFixed(1),y=(rng()*H).toFixed(1),sz=rng()<.08?1.5:rng()<.3?.9:.4,op=(.2+rng()*.6).toFixed(2),dur=(1.5+rng()*5).toFixed(1),beg=(rng()*8).toFixed(1);s+=`<circle cx="${x}" cy="${y}" r="${sz}" fill="${rng()<.15?'#ffe8cc':'white'}" opacity="${op}"><animate attributeName="opacity" values="${op};${(+op*.08).toFixed(2)};${op}" dur="${dur}s" begin="${beg}s" repeatCount="indefinite"/></circle>`;}return`<g>${s}</g>`;}
 function svgOrbits(){return ORX.map((rx,i)=>{const ry=Math.round(rx*FLAT),path=orbitPath(rx,ry);return`<path d="${path}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="0.7"><animate attributeName="stroke-opacity" values="0.04;0.1;0.04" dur="${28+i*10}s" repeatCount="indefinite"/></path>`;}).join('');}
+function svgBelt(){const rng=prng(111),cT=Math.cos(TILT),sT=Math.sin(TILT),bR=98,bRy=Math.round(98*FLAT);let d='';for(let i=0;i<100;i++){const t=(i/100)*2*Math.PI,jx=(rng()-.5)*8,jy=(rng()-.5)*2,ex=(bR+jx)*Math.cos(t),ey=(bRy+jy)*Math.sin(t);d+=`<circle cx="${(CX+ex*cT-ey*sT).toFixed(1)}" cy="${(CY+ex*sT+ey*cT).toFixed(1)}" r="${(.4+rng()*.7).toFixed(1)}" fill="#c8a040" opacity="${(.12+rng()*.35).toFixed(2)}"/>`;}return`<g><animateTransform attributeName="transform" type="rotate" from="0 ${CX} ${CY}" to="360 ${CX} ${CY}" dur="140s" repeatCount="indefinite"/>${d}</g>`;}
 
-function svgBelt(){const rng=prng(111),cT=Math.cos(TILT),sT=Math.sin(TILT),bR=98,bRy=Math.round(98*FLAT);let d='';
-  for(let i=0;i<100;i++){const t=(i/100)*2*Math.PI,jx=(rng()-.5)*8,jy=(rng()-.5)*2,ex=(bR+jx)*Math.cos(t),ey=(bRy+jy)*Math.sin(t);
-    d+=`<circle cx="${(CX+ex*cT-ey*sT).toFixed(1)}" cy="${(CY+ex*sT+ey*cT).toFixed(1)}" r="${(.4+rng()*.7).toFixed(1)}" fill="#c8a040" opacity="${(.12+rng()*.35).toFixed(2)}"/>`;}
-  return`<g><animateTransform attributeName="transform" type="rotate" from="0 ${CX} ${CY}" to="360 ${CX} ${CY}" dur="140s" repeatCount="indefinite"/>${d}</g>`;}
-
-function svgSun(){let s='';
-  s+=`<circle cx="${CX}" cy="${CY}" r="100" fill="url(#sc1)" filter="url(#fb)"><animate attributeName="r" values="95;110;95" dur="6s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.7;1;0.7" dur="6s" repeatCount="indefinite"/></circle>`;
-  s+=`<circle cx="${CX}" cy="${CY}" r="65" fill="url(#sc2)" filter="url(#fm)"><animate attributeName="r" values="60;72;60" dur="4.5s" repeatCount="indefinite"/></circle>`;
-  s+=`<circle cx="${CX}" cy="${CY}" r="42" fill="url(#sc3)" filter="url(#fg)"><animate attributeName="r" values="38;46;38" dur="3s" repeatCount="indefinite"/></circle>`;
-  s+=`<g opacity="0.12"><animateTransform attributeName="transform" type="rotate" from="0 ${CX} ${CY}" to="360 ${CX} ${CY}" dur="50s" repeatCount="indefinite"/>`;
-  for(let i=0;i<12;i++){const a=i*30,rad=a*Math.PI/180,x2=CX+Math.cos(rad)*55,y2=CY+Math.sin(rad)*55;
-    s+=`<line x1="${CX}" y1="${CY}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#ffcc44" stroke-width="${i%3===0?2:1}" opacity="${i%3===0?0.3:0.15}"/>`;}s+=`</g>`;
-  s+=`<circle cx="${CX}" cy="${CY}" r="22" fill="url(#sb)"><animate attributeName="r" values="21;23;21" dur="3s" repeatCount="indefinite"/></circle>`;
-  s+=`<path d="M ${CX-8},${CY+5} Q ${CX-3},${CY+12} ${CX+5},${CY+6}" fill="none" stroke="rgba(255,120,0,0.2)" stroke-width="1.5"/>`;
-  s+=`<path d="M ${CX+3},${CY-8} Q ${CX+10},${CY-4} ${CX+8},${CY+3}" fill="none" stroke="rgba(255,150,30,0.15)" stroke-width="1.2"/>`;
-  s+=`<circle cx="${CX}" cy="${CY}" r="11" fill="url(#sco)"><animate attributeName="r" values="10;12;10" dur="2s" repeatCount="indefinite"/></circle>`;
-  s+=`<circle cx="${CX-3}" cy="${CY-3}" r="5" fill="white" opacity="0.7"><animate attributeName="opacity" values="0.7;0.3;0.7" dur="1.8s" repeatCount="indefinite"/></circle>`;
-  s+=`<line x1="${CX-45}" y1="${CY+15}" x2="${CX+45}" y2="${CY-15}" stroke="rgba(255,220,150,0.08)" stroke-width="3" filter="url(#fs)"><animate attributeName="opacity" values="0.08;0.15;0.08" dur="4s" repeatCount="indefinite"/></line>`;
-  s+=`<path d="M ${CX-18},${CY-12} Q ${CX-28},${CY-30} ${CX-10},${CY-20}" fill="none" stroke="rgba(255,100,20,0.2)" stroke-width="1.5" filter="url(#fs)"><animate attributeName="opacity" values="0.2;0.05;0.2" dur="5s" repeatCount="indefinite"/></path>`;
-  s+=`<text x="${CX}" y="${CY+4}" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="rgba(80,30,0,0.6)">AT</text>`;
-  return s;}
+function svgSun(){
+  let s='';
+  // Corona layer 1 - outermost
+  s+=`<circle cx="${CX}" cy="${CY}" r="115" fill="url(#sc1)" filter="url(#fb)"><animate attributeName="r" values="110;125;110" dur="7s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0.9;0.6" dur="7s" repeatCount="indefinite"/></circle>`;
+  // Corona layer 2
+  s+=`<circle cx="${CX}" cy="${CY}" r="72" fill="url(#sc2)" filter="url(#fm)"><animate attributeName="r" values="68;80;68" dur="5s" repeatCount="indefinite"/></circle>`;
+  // Corona layer 3 - inner
+  s+=`<circle cx="${CX}" cy="${CY}" r="45" fill="url(#sc3)" filter="url(#fg)"><animate attributeName="r" values="42;50;42" dur="3.5s" repeatCount="indefinite"/></circle>`;
+  // Rotating rays
+  s+=`<g opacity="0.1"><animateTransform attributeName="transform" type="rotate" from="0 ${CX} ${CY}" to="360 ${CX} ${CY}" dur="60s" repeatCount="indefinite"/>`;
+  for(let i=0;i<16;i++){const a=i*22.5,rad=a*Math.PI/180,len=48+((i%4===0)?12:0),x2=CX+Math.cos(rad)*len,y2=CY+Math.sin(rad)*len;
+    s+=`<line x1="${CX}" y1="${CY}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#ffbb33" stroke-width="${i%4===0?2.5:i%2===0?1.5:0.8}" opacity="${i%4===0?0.3:0.12}"/>`;}
+  s+=`</g>`;
+  // Sun body - larger
+  s+=`<circle cx="${CX}" cy="${CY}" r="26" fill="url(#sb)"><animate attributeName="r" values="25;27;25" dur="3s" repeatCount="indefinite"/></circle>`;
+  // Surface granulation - turbulent cells
+  const gran=[
+    [-14,-10,10,'rgba(160,60,0,0.18)'],[-4,-14,7,'rgba(180,80,0,0.14)'],[8,-8,8,'rgba(140,50,0,0.16)'],
+    [12,4,7,'rgba(170,60,0,0.15)'],[-10,8,9,'rgba(150,50,0,0.17)'],[4,12,6,'rgba(160,70,0,0.14)'],
+    [-6,0,8,'rgba(130,40,0,0.12)'],[0,-6,6,'rgba(200,90,0,0.1)'],[14,-4,5,'rgba(180,70,0,0.13)'],
+    [-12,-2,7,'rgba(140,50,0,0.15)'],[6,-12,5,'rgba(170,60,0,0.12)'],[2,8,7,'rgba(150,50,0,0.16)'],
+  ];
+  gran.forEach(([dx,dy,r,col])=>{s+=`<circle cx="${CX+dx}" cy="${CY+dy}" r="${r}" fill="${col}"/>`;});
+  // Bright convection spots
+  s+=`<circle cx="${CX-8}" cy="${CY-8}" r="4" fill="rgba(255,230,150,0.2)"/>`;
+  s+=`<circle cx="${CX+6}" cy="${CY+4}" r="3" fill="rgba(255,220,140,0.15)"/>`;
+  s+=`<circle cx="${CX-2}" cy="${CY+10}" r="2.5" fill="rgba(255,240,160,0.12)"/>`;
+  // Surface edge ring
+  s+=`<circle cx="${CX}" cy="${CY}" r="26" fill="none" stroke="rgba(255,140,30,0.25)" stroke-width="1.2"/>`;
+  s+=`<circle cx="${CX}" cy="${CY}" r="24" fill="none" stroke="rgba(255,180,60,0.12)" stroke-width="0.8"/>`;
+  // Solar prominences - bigger arcs
+  s+=`<path d="M ${CX-20},${CY-14} Q ${CX-34},${CY-38} ${CX-12},${CY-24}" fill="none" stroke="rgba(255,100,20,0.25)" stroke-width="2" filter="url(#fs)"><animate attributeName="opacity" values="0.25;0.06;0.25" dur="5s" repeatCount="indefinite"/></path>`;
+  s+=`<path d="M ${CX+18},${CY+16} Q ${CX+36},${CY+34} ${CX+24},${CY+10}" fill="none" stroke="rgba(255,120,30,0.22)" stroke-width="1.8" filter="url(#fs)"><animate attributeName="opacity" values="0.22;0.05;0.22" dur="6.5s" begin="2s" repeatCount="indefinite"/></path>`;
+  s+=`<path d="M ${CX+8},${CY-18} Q ${CX+18},${CY-32} ${CX+22},${CY-16}" fill="none" stroke="rgba(255,140,40,0.18)" stroke-width="1.5" filter="url(#fs)"><animate attributeName="opacity" values="0.18;0.04;0.18" dur="8s" begin="4s" repeatCount="indefinite"/></path>`;
+  // Hot core
+  s+=`<circle cx="${CX}" cy="${CY}" r="13" fill="url(#sco)"><animate attributeName="r" values="12;14;12" dur="2.5s" repeatCount="indefinite"/></circle>`;
+  // Brightest center
+  s+=`<circle cx="${CX-3}" cy="${CY-3}" r="5" fill="white" opacity="0.6"><animate attributeName="opacity" values="0.6;0.25;0.6" dur="2s" repeatCount="indefinite"/></circle>`;
+  // Lens flare
+  s+=`<line x1="${CX-50}" y1="${CY+16}" x2="${CX+50}" y2="${CY-16}" stroke="rgba(255,220,150,0.07)" stroke-width="3.5" filter="url(#fs)"><animate attributeName="opacity" values="0.07;0.14;0.07" dur="4.5s" repeatCount="indefinite"/></line>`;
+  // AT label
+  s+=`<text x="${CX}" y="${CY+3.5}" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="rgba(60,20,0,0.5)">AT</text>`;
+  return s;
+}
 
 function svgPlanets(P){return P.slice(0,5).map((p,i)=>{
   const rx=ORX[i],ry=Math.round(rx*FLAT),pr=pR(P,i),dur=SPEEDS[i],c=PCOL[i],name=esc(p.name.slice(0,14)),lang=esc(p.lang);
@@ -131,7 +173,7 @@ function svgPlanets(P){return P.slice(0,5).map((p,i)=>{
   else if(i===3){body=`<circle r="${pr+5}" fill="${c.g}" opacity="0.1"><animate attributeName="r" values="${pr+4};${pr+7};${pr+4}" dur="3s" repeatCount="indefinite"/></circle><circle r="${pr}" fill="url(#pg${i})"/>`;}
   else{body=`<circle r="${pr}" fill="url(#pg${i})"/><line x1="${-pr*.3}" y1="${-pr*.6}" x2="${pr*.1}" y2="${-pr*.1}" stroke="rgba(255,255,255,0.22)" stroke-width="1.2"/><circle cx="${-pr*.15}" cy="${-pr*.3}" r="${pr*.1}" fill="rgba(255,255,255,0.18)"/>`;}
   let s=`<g><animateMotion dur="${dur}s" repeatCount="indefinite" rotate="0" calcMode="linear"><mpath href="#op${i}"/></animateMotion>`;
-  s+=`<circle r="${pr*3}" fill="url(#gw${i})" filter="url(#fg)" opacity="0.5"/>`;s+=body;
+  s+=`<circle r="${pr*3}" fill="url(#gw${i})" filter="url(#fg)" opacity="0.5"/>${body}`;
   s+=`<circle r="${pr*.45}" cx="${-pr*.28}" cy="${-pr*.28}" fill="rgba(255,255,255,0.1)"/>`;
   s+=`<circle r="${pr}" fill="none" stroke="${c.g}" stroke-width="0.7" opacity="0.25"><animate attributeName="r" values="${pr};${pr+2};${pr}" dur="${3+i*.5}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.25;0.06;0.25" dur="${3+i*.5}s" repeatCount="indefinite"/></circle>`;
   if(p.forks>0){s+=`<g><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="${(dur*.12).toFixed(1)}s" repeatCount="indefinite"/><circle cx="${pr+8}" r="2" fill="#99aabb" opacity="0.6"/></g>`;}
@@ -139,85 +181,56 @@ function svgPlanets(P){return P.slice(0,5).map((p,i)=>{
   s+=`<text y="${pr+23}" text-anchor="middle" font-family="monospace" font-size="7" fill="${c.g}" opacity="0.55">${lang}</text>`;
   return s+'</g>';}).join('');}
 
-function svgComets(P){let s='',ci=0;
-  P.slice(0,5).forEach((p,pi)=>{const rx=ORX[pi],ry=Math.round(rx*FLAT),c=PCOL[pi];
-    p.msgs.forEach((msg,mi)=>{if(ci>=12)return;const angle=ANGS[pi]+mi*.8+.4,tp=orbitPt(rx,ry,angle),sx=Math.max(-30,tp.x-140-mi*15),sy=Math.max(5,tp.y-35-mi*10),dur=8+ci*.7,beg=ci*2.5;
-      s+=`<g opacity="0"><animateMotion dur="${dur.toFixed(1)}s" begin="${beg.toFixed(1)}s" repeatCount="indefinite" rotate="auto" path="M ${sx.toFixed(1)},${sy.toFixed(1)} L ${tp.x.toFixed(1)},${tp.y.toFixed(1)}"/>
-<animate attributeName="opacity" values="0;0.9;0.9;0" keyTimes="0;0.06;0.88;1" dur="${dur.toFixed(1)}s" begin="${beg.toFixed(1)}s" repeatCount="indefinite"/>
-<circle r="2.5" fill="${c.g}"/><rect x="-44" y="-1.2" width="44" height="2.5" fill="url(#ct${pi})" rx="1.2"/>
-<text x="5" y="-4" font-family="monospace" font-size="6.5" fill="${c.g}" opacity="0.8">${esc(msg)}</text></g>`;ci++;});});
-  return s;}
+function svgComets(P){let s='',ci=0;P.slice(0,5).forEach((p,pi)=>{const rx=ORX[pi],ry=Math.round(rx*FLAT),c=PCOL[pi];p.msgs.forEach((msg,mi)=>{if(ci>=12)return;const angle=ANGS[pi]+mi*.8+.4,tp=orbitPt(rx,ry,angle),sx=Math.max(-30,tp.x-140-mi*15),sy=Math.max(5,tp.y-35-mi*10),dur=8+ci*.7,beg=ci*2.5;s+=`<g opacity="0"><animateMotion dur="${dur.toFixed(1)}s" begin="${beg.toFixed(1)}s" repeatCount="indefinite" rotate="auto" path="M ${sx.toFixed(1)},${sy.toFixed(1)} L ${tp.x.toFixed(1)},${tp.y.toFixed(1)}"/><animate attributeName="opacity" values="0;0.9;0.9;0" keyTimes="0;0.06;0.88;1" dur="${dur.toFixed(1)}s" begin="${beg.toFixed(1)}s" repeatCount="indefinite"/><circle r="2.5" fill="${c.g}"/><rect x="-44" y="-1.2" width="44" height="2.5" fill="url(#ct${pi})" rx="1.2"/><text x="5" y="-4" font-family="monospace" font-size="6.5" fill="${c.g}" opacity="0.8">${esc(msg)}</text></g>`;ci++;});});return s;}
 
-// HUD: stats only, no top repos
 function svgHUDLeft(stats){
-  const x=16,y=H-140,w=280,h=124;
+  const x=16,y=H-148,w=280,h=134;
   let s=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="rgba(6,10,22,0.94)" stroke="rgba(80,130,220,0.12)" stroke-width="0.6"/>`;
-  s+=`<rect x="${x+1}" y="${y+1}" width="${w-2}" height="34" rx="9" fill="rgba(50,100,200,0.05)"/>`;
-  let cy=y+22;
-  s+=`<text x="${x+16}" y="${cy}" font-family="monospace" font-size="11" font-weight="bold" fill="rgba(230,240,255,0.92)">${esc(stats.name)}</text>`;
-  s+=`<text x="${x+w-16}" y="${cy}" text-anchor="end" font-family="monospace" font-size="8.5" fill="rgba(120,160,220,0.5)">@${USER}</text>`;
-  cy+=22;s+=`<line x1="${x+12}" y1="${cy}" x2="${x+w-12}" y2="${cy}" stroke="rgba(80,140,220,0.08)" stroke-width="0.5"/>`;cy+=18;
-  [['Repos',stats.repos],['Stars',stats.stars],['Since',stats.since]].forEach(([l,v],i)=>{
-    const bx=x+16+i*90;
-    s+=`<text x="${bx}" y="${cy}" font-family="monospace" font-size="8" fill="rgba(140,170,220,0.5)">${l}</text>`;
-    s+=`<text x="${bx}" y="${cy+14}" font-family="monospace" font-size="10" font-weight="bold" fill="rgba(220,240,255,0.9)">${v}</text>`;});
-  cy+=32;s+=`<line x1="${x+12}" y1="${cy}" x2="${x+w-12}" y2="${cy}" stroke="rgba(80,140,220,0.08)" stroke-width="0.5"/>`;cy+=16;
-  s+=`<text x="${x+16}" y="${cy}" font-family="monospace" font-size="8.5" font-weight="bold" fill="rgba(100,170,255,0.6)" letter-spacing="1.5">LAST 30 DAYS</text>`;cy+=18;
-  [['Commits',stats.commits],['PRs',stats.prs],['Issues',stats.issues]].forEach(([l,v],i)=>{
-    const bx=x+16+i*90;
-    s+=`<text x="${bx}" y="${cy}" font-family="monospace" font-size="8" fill="rgba(140,170,220,0.5)">${l}</text>`;
-    s+=`<text x="${bx}" y="${cy+14}" font-family="monospace" font-size="10" font-weight="bold" fill="rgba(220,240,255,0.9)">${v}</text>`;});
+  s+=`<rect x="${x+1}" y="${y+1}" width="${w-2}" height="30" rx="9" fill="rgba(50,100,200,0.05)"/>`;
+  let cy=y+20;
+  s+=`<text x="${x+14}" y="${cy}" font-family="monospace" font-size="11" font-weight="bold" fill="rgba(230,240,255,0.92)">${esc(stats.name)}</text>`;
+  s+=`<text x="${x+w-14}" y="${cy}" text-anchor="end" font-family="monospace" font-size="8" fill="rgba(120,160,220,0.5)">@${USER}</text>`;
+  cy+=18;s+=`<line x1="${x+10}" y1="${cy}" x2="${x+w-10}" y2="${cy}" stroke="rgba(80,140,220,0.08)" stroke-width="0.5"/>`;cy+=15;
+  [['Repos',stats.repos],['Stars',stats.stars],['Since',stats.since]].forEach(([l,v],i)=>{const bx=x+14+i*90;
+    s+=`<text x="${bx}" y="${cy}" font-family="monospace" font-size="7.5" fill="rgba(140,170,220,0.5)">${l}</text>`;
+    s+=`<text x="${bx}" y="${cy+13}" font-family="monospace" font-size="10" font-weight="bold" fill="rgba(220,240,255,0.9)">${v}</text>`;});
+  cy+=27;s+=`<line x1="${x+10}" y1="${cy}" x2="${x+w-10}" y2="${cy}" stroke="rgba(80,140,220,0.08)" stroke-width="0.5"/>`;cy+=14;
+  s+=`<text x="${x+14}" y="${cy}" font-family="monospace" font-size="8" font-weight="bold" fill="rgba(100,170,255,0.6)" letter-spacing="1.5">LAST 30 DAYS</text>`;cy+=15;
+  [['Commits',stats.commits],['PRs',stats.prs],['Issues',stats.issues]].forEach(([l,v],i)=>{const bx=x+14+i*90;
+    s+=`<text x="${bx}" y="${cy}" font-family="monospace" font-size="7.5" fill="rgba(140,170,220,0.5)">${l}</text>`;
+    s+=`<text x="${bx}" y="${cy+13}" font-family="monospace" font-size="10" font-weight="bold" fill="rgba(220,240,255,0.9)">${v}</text>`;});
   return s;
 }
 
-// Fully dynamic tech stack: each category and each row of badges auto-sizes
 function svgTechStack(tech){
-  const px=610,pw=275,pad=14,badgeH=20,badgeGapX=6,badgeGapY=6,badgePadX=10;
-  const charW=5.8; // approx width per character at font-size 8
-  let cy=16; // start y
-  let s='';
-
-  // Header card
+  const px=610,pw=275,pad=14,badgeH=20,gapX=6,gapY=6,padX=10,charW=5.8;
+  let cy=16,s='';
   s+=`<rect x="${px}" y="${cy}" width="${pw}" height="32" rx="8" fill="rgba(6,10,22,0.94)" stroke="rgba(80,130,220,0.12)" stroke-width="0.6"/>`;
   s+=`<text x="${px+16}" y="${cy+20}" font-family="monospace" font-size="11" font-weight="bold" fill="rgba(100,180,255,0.75)" letter-spacing="2">TECH STACK</text>`;
   cy+=40;
-
   Object.entries(tech).forEach(([cat,items])=>{
-    if(!items||items.length===0)return;
-
-    // Simulate badge wrapping to find exact card height
-    const maxBadgeX=px+pw-pad;
-    let simX=px+pad, rowCount=1;
-    items.forEach(item=>{
-      const tw=Math.ceil(item.length*charW)+badgePadX*2;
-      if(simX+tw>maxBadgeX){simX=px+pad;rowCount++;}
-      simX+=tw+badgeGapX;
-    });
-    const labelH=22; // category label height
-    const badgesH=rowCount*(badgeH+badgeGapY);
-    const cardH=labelH+badgesH+8;
-
-    // Draw card
+    if(!items||!items.length)return;
+    const tint=CAT_TINT[cat]||{f:'rgba(60,120,220,0.07)',s:'rgba(80,140,255,0.18)'};
+    const maxBX=px+pw-pad;
+    let simX=px+pad,rows=1;
+    items.forEach(it=>{const tw=Math.ceil(it.length*charW)+padX*2;if(simX+tw>maxBX){simX=px+pad;rows++;}simX+=tw+gapX;});
+    const labelH=22,badgesH=rows*(badgeH+gapY),cardH=labelH+badgesH+8;
     s+=`<rect x="${px}" y="${cy}" width="${pw}" height="${cardH}" rx="8" fill="rgba(6,10,22,0.94)" stroke="rgba(80,130,220,0.1)" stroke-width="0.5"/>`;
     s+=`<text x="${px+pad}" y="${cy+16}" font-family="monospace" font-size="8.5" fill="rgba(130,160,210,0.65)">${esc(cat)}</text>`;
-
-    // Render badges with same wrapping logic
-    let bx=px+pad, by=cy+labelH;
-    items.forEach(item=>{
-      const tw=Math.ceil(item.length*charW)+badgePadX*2;
-      if(bx+tw>maxBadgeX){bx=px+pad;by+=badgeH+badgeGapY;}
-      s+=`<rect x="${bx}" y="${by}" width="${tw}" height="${badgeH}" rx="5" fill="rgba(60,120,220,0.07)" stroke="rgba(80,140,255,0.18)" stroke-width="0.5"/>`;
-      s+=`<text x="${bx+tw/2}" y="${by+13.5}" text-anchor="middle" font-family="monospace" font-size="8" fill="rgba(180,210,255,0.88)">${esc(item)}</text>`;
-      bx+=tw+badgeGapX;
+    let bx=px+pad,by=cy+labelH;
+    items.forEach(it=>{
+      const tw=Math.ceil(it.length*charW)+padX*2;
+      if(bx+tw>maxBX){bx=px+pad;by+=badgeH+gapY;}
+      s+=`<rect x="${bx}" y="${by}" width="${tw}" height="${badgeH}" rx="5" fill="${tint.f}" stroke="${tint.s}" stroke-width="0.5"/>`;
+      s+=`<text x="${bx+tw/2}" y="${by+13.5}" text-anchor="middle" font-family="monospace" font-size="8" fill="rgba(200,220,255,0.88)">${esc(it)}</text>`;
+      bx+=tw+gapX;
     });
-
     cy+=cardH+8;
   });
   return s;
 }
 
-function svgTitle(){return`<text x="${CX}" y="22" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="rgba(180,215,255,0.85)" letter-spacing="6">ALTRIN'S GALAXY</text>
-<text x="${CX}" y="36" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(100,160,220,0.35)" letter-spacing="2">AUTO-UPDATES DAILY</text>`;}
+function svgTitle(){return`<text x="${CX}" y="22" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="rgba(180,215,255,0.85)" letter-spacing="6">ALTRIN'S GALAXY</text><text x="${CX}" y="36" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(100,160,220,0.35)" letter-spacing="2">AUTO-UPDATES DAILY</text>`;}
 
 async function main(){
   const{commitData,stats,techStack}=await fetchData();
