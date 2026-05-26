@@ -1,7 +1,7 @@
 'use strict';
 const https=require('https'),fs=require('fs');
 const USER='altrin7311',TOKEN=process.env.GITHUB_TOKEN||'';
-const W=900,H=560,CX=310,CY=280;
+const W=900,H=600,CX=310,CY=280;
 const TILT=-15*Math.PI/180,FLAT=0.25;
 const ORX=[70,125,180,235,285];
 const SPEEDS=[11,17,24,33,44];
