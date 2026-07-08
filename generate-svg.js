@@ -4,9 +4,11 @@
    Zero dependencies. Run by GitHub Actions daily:
      GITHUB_OWNER=<user> GITHUB_TOKEN=<token> node generate-svg.js
    Output: galaxy.svg  (embed in README via <img src="galaxy.svg">)
+   v11 · AI-engineer tech radar: 'LLM & Agents' category, wider
+   detection corpus, and PINNED_TECH for always-on core skills.
    ────────────────────────────────────────────────────────────── */
 const https = require('https'), fs = require('fs');
-const USER  = process.env.GITHUB_OWNER || 'altrin7311';
+const USER  = process.env.GITHUB_OWNER || 'altrintitus';
 const TOKEN = process.env.GITHUB_TOKEN || '';
 
 /* ── canvas & orbital geometry ─────────────────────────────── */
@@ -27,13 +29,15 @@ const PCOL = [
 ];
 const CAT_TINT = {
   'Languages':      { f:'rgba(70,140,255,0.10)',  s:'rgba(70,140,255,0.28)'  },
+  'LLM & Agents':   { f:'rgba(255,105,180,0.10)', s:'rgba(255,105,180,0.26)' },
   'AI & ML':        { f:'rgba(160,80,255,0.10)',  s:'rgba(160,80,255,0.28)'  },
   'Frameworks':     { f:'rgba(40,210,140,0.10)',  s:'rgba(40,210,140,0.28)'  },
   'Databases':      { f:'rgba(240,175,40,0.09)',  s:'rgba(240,175,40,0.24)'  },
   'DevOps & Tools': { f:'rgba(40,200,220,0.09)',  s:'rgba(40,200,220,0.24)'  },
 };
 const CAT_LABEL = {
-  'Languages':'rgba(120,170,255,0.7)', 'AI & ML':'rgba(190,140,255,0.7)',
+  'Languages':'rgba(120,170,255,0.7)', 'LLM & Agents':'rgba(255,150,205,0.75)',
+  'AI & ML':'rgba(190,140,255,0.7)',
   'Frameworks':'rgba(90,225,165,0.7)', 'Databases':'rgba(245,200,90,0.7)',
   'DevOps & Tools':'rgba(90,215,235,0.7)',
 };
@@ -46,17 +50,33 @@ const LANG_DOT = {
 };
 
 /* ── tech detection corpus ─────────────────────────────────── */
+/* Keywords are matched against topics + descriptions + repo
+   names + READMEs, lowercased with [-_ whitespace] → '.', so
+   multi-word phrases are written 'multi.agent', 'github.actions'. */
 const TECH_DB = {
-  'AI & ML':[['openai','OpenAI'],['langchain','LangChain'],['tensorflow','TensorFlow'],['pytorch','PyTorch'],['hugging','HuggingFace'],['scikit','Scikit-Learn'],['transformers','Transformers'],['llm','LLMs'],['gpt','GPT'],['gemini','Gemini'],['anthropic','Claude'],['pandas','Pandas'],['numpy','NumPy'],['keras','Keras'],['opencv','OpenCV'],['matplotlib','Matplotlib'],['jupyter','Jupyter'],['nltk','NLTK']],
-  'Frameworks':[['react','React'],['vue','Vue'],['angular','Angular'],['flask','Flask'],['django','Django'],['fastapi','FastAPI'],['express','Express'],['next','Next.js'],['svelte','Svelte'],['tailwind','Tailwind'],['bootstrap','Bootstrap'],['streamlit','Streamlit'],['gradio','Gradio'],['laravel','Laravel'],['electron','Electron']],
-  'Databases':[['postgres','PostgreSQL'],['mysql','MySQL'],['mongodb','MongoDB'],['mongo','MongoDB'],['sqlite','SQLite'],['redis','Redis'],['firebase','Firebase'],['supabase','Supabase'],['prisma','Prisma'],['dynamodb','DynamoDB'],['neo4j','Neo4j']],
-  'DevOps & Tools':[['docker','Docker'],['kubernetes','K8s'],['aws','AWS'],['gcp','GCP'],['azure','Azure'],['heroku','Heroku'],['vercel','Vercel'],['netlify','Netlify'],['github.actions','Actions'],['ci/cd','CI/CD'],['terraform','Terraform'],['nginx','Nginx'],['linux','Linux'],['pip','pip'],['selenium','Selenium'],['playwright','Playwright'],['pytest','Pytest'],['vite','Vite'],['graphql','GraphQL'],['celery','Celery'],['poetry','Poetry']],
+  'LLM & Agents':[['langgraph','LangGraph'],['langchain','LangChain'],['llamaindex','LlamaIndex'],['llama.index','LlamaIndex'],['haystack','Haystack'],['dspy','DSPy'],['semantic.kernel','Semantic Kernel'],['ollama','Ollama'],['vllm','vLLM'],['sglang','SGLang'],['litellm','LiteLLM'],['groq','Groq'],['openai','OpenAI'],['anthropic','Claude'],['claude','Claude'],['gemini','Gemini'],['openrouter','OpenRouter'],['cerebras','Cerebras'],['mistral','Mistral'],['llama','LLaMA'],['deepseek','DeepSeek'],['gpt','GPT'],['bedrock','AWS Bedrock'],['vertex.ai','Vertex AI'],['llm','LLMs'],['retrieval','RAG'],['.rag.','RAG'],['embedding','Embeddings'],['pgvector','pgvector'],['faiss','FAISS'],['chromadb','ChromaDB'],['pinecone','Pinecone'],['qdrant','Qdrant'],['weaviate','Weaviate'],['milvus','Milvus'],['rerank','Reranking'],['multi.agent','Multi-Agent'],['agentic','Agentic AI'],['react.agent','ReAct'],['crewai','CrewAI'],['autogen','AutoGen'],['mcp','MCP'],['function.calling','Function Calling'],['tool.calling','Function Calling'],['prompt.engineering','Prompt Engineering'],['few.shot','Few-shot'],['chain.of.thought','CoT'],['guardrails','Guardrails'],['pydantic.ai','PydanticAI'],['instructor','Instructor'],['langsmith','LangSmith'],['langfuse','Langfuse'],['ragas','RAGAS'],['whisper','Whisper'],['fine.tun','Fine-tuning'],['finetun','Fine-tuning'],['peft','PEFT'],['qlora','QLoRA'],['quantiz','Quantization'],['gguf','GGUF']],
+  'AI & ML':[['pytorch','PyTorch'],['tensorflow','TensorFlow'],['keras','Keras'],['jax','JAX'],['scikit','Scikit-Learn'],['hugging','HuggingFace'],['transformers','Transformers'],['spacy','spaCy'],['nltk','NLTK'],['gensim','Gensim'],['pandas','Pandas'],['numpy','NumPy'],['scipy','SciPy'],['polars','Polars'],['statsmodels','statsmodels'],['opencv','OpenCV'],['pillow','Pillow'],['matplotlib','Matplotlib'],['seaborn','Seaborn'],['plotly','Plotly'],['jupyter','Jupyter'],['lightgbm','LightGBM'],['xgboost','XGBoost'],['catboost','CatBoost'],['prophet','Prophet'],['optuna','Optuna'],['wandb','W&B'],['weights.and.biases','W&B'],['tensorboard','TensorBoard'],['or.tools','OR-Tools'],['ortools','OR-Tools'],['simulated.annealing','Simulated Annealing'],['genetic.algorithm','Genetic Algo'],['reinforcement','RL'],['q.learning','Q-Learning'],['dqn','Deep RL'],['lstm','LSTM'],['cnn','CNN'],['rnn','RNN'],['yolo','YOLO'],['forecasting','Forecasting'],['time.series','Time Series'],['anomaly','Anomaly Detection'],['numba','Numba'],['cuda','CUDA'],['onnx','ONNX']],
+  'Frameworks':[['react','React'],['next.js','Next.js'],['nextjs','Next.js'],['node.js','Node.js'],['nodejs','Node.js'],['vue','Vue'],['svelte','Svelte'],['angular','Angular'],['remix','Remix'],['nestjs','NestJS'],['express','Express'],['fastapi','FastAPI'],['flask','Flask'],['django','Django'],['uvicorn','Uvicorn'],['pydantic','Pydantic'],['tailwind','Tailwind'],['shadcn','shadcn/ui'],['bootstrap','Bootstrap'],['streamlit','Streamlit'],['gradio','Gradio'],['redux','Redux'],['zustand','Zustand'],['tanstack','TanStack'],['framer','Framer Motion'],['zod','Zod'],['trpc','tRPC'],['websocket','WebSockets'],['socket.io','Socket.IO'],['three.js','Three.js'],['d3','D3'],['chart.js','Chart.js'],['recharts','Recharts'],['leaflet','Leaflet'],['openstreetmap','OpenStreetMap'],['reportlab','ReportLab'],['pptxgen','PptxGenJS'],['htmx','HTMX'],['electron','Electron'],['laravel','Laravel'],['pwa','PWA']],
+  'Databases':[['postgres','PostgreSQL'],['mysql','MySQL'],['mariadb','MariaDB'],['sqlite','SQLite'],['mongodb','MongoDB'],['mongo','MongoDB'],['redis','Redis'],['firebase','Firebase'],['supabase','Supabase'],['planetscale','PlanetScale'],['cockroach','CockroachDB'],['clickhouse','ClickHouse'],['duckdb','DuckDB'],['influxdb','InfluxDB'],['timescale','TimescaleDB'],['postgis','PostGIS'],['elasticsearch','Elasticsearch'],['cassandra','Cassandra'],['dynamodb','DynamoDB'],['neo4j','Neo4j'],['prisma','Prisma'],['drizzle','Drizzle'],['sqlalchemy','SQLAlchemy']],
+  'DevOps & Tools':[['docker','Docker'],['kubernetes','K8s'],['k8s','K8s'],['terraform','Terraform'],['ansible','Ansible'],['argocd','ArgoCD'],['nginx','Nginx'],['aws','AWS'],['gcp','GCP'],['azure','Azure'],['cloudflare','Cloudflare'],['heroku','Heroku'],['vercel','Vercel'],['netlify','Netlify'],['railway','Railway'],['github.actions','Actions'],['gitlab','GitLab'],['jenkins','Jenkins'],['ci/cd','CI/CD'],['prometheus','Prometheus'],['grafana','Grafana'],['datadog','Datadog'],['sentry','Sentry'],['mlflow','MLflow'],['kafka','Kafka'],['rabbitmq','RabbitMQ'],['celery','Celery'],['stripe','Stripe'],['linux','Linux'],['bash','Bash'],['selenium','Selenium'],['playwright','Playwright'],['pytest','Pytest'],['jest','Jest'],['vitest','Vitest'],['cypress','Cypress'],['ruff','Ruff'],['eslint','ESLint'],['prettier','Prettier'],['vite','Vite'],['graphql','GraphQL'],['openapi','OpenAPI'],['swagger','Swagger'],['makefile','Make'],['pip','pip'],['poetry','Poetry']],
+};
+
+/* ── pinned tech: always displayed, listed first ─────────────
+   Curated for Applied-AI / AI-Engineer roles — edit freely.
+   Use the same display names as TECH_DB so duplicates merge;
+   detected extras get pruned before pinned ones do. */
+const PINNED_TECH = {
+  'LLM & Agents':  ['LangGraph','Multi-Agent','RAG','LangChain','Ollama','Groq','Claude','OpenAI','Gemini','Cerebras','OpenRouter','MCP','Embeddings','pgvector'],
+  'AI & ML':       ['PyTorch','Deep RL','LSTM','Prophet','LightGBM','XGBoost','OR-Tools','Scikit-Learn','HuggingFace','Pandas','NumPy','Plotly'],
+  'Frameworks':    ['FastAPI','Next.js','React','Tailwind','shadcn/ui','Streamlit','WebSockets','Zod','Vite','Node.js','Pydantic'],
+  'Databases':     ['PostgreSQL','Supabase','Redis','TimescaleDB','PostGIS','Drizzle'],
+  'DevOps & Tools':['Docker','K8s','Actions','Prometheus','Grafana','Playwright','Selenium','Pytest','Stripe','Ruff','Railway','Vercel'],
 };
 
 /* ── helpers ───────────────────────────────────────────────── */
 function get(u){
   return new Promise((res, rej) => {
-    const o = { headers: { 'User-Agent':'galaxy/10', 'Accept':'application/vnd.github.v3+json',
+    const o = { headers: { 'User-Agent':'galaxy/12', 'Accept':'application/vnd.github.v3+json',
       ...(TOKEN ? { Authorization:`token ${TOKEN}` } : {}) } };
     https.get(u, o, s => { let d=''; s.on('data', c => d+=c);
       s.on('end', () => { try { res(JSON.parse(d)); } catch(e){ rej(e); } });
@@ -71,8 +91,8 @@ function orbitPath(rx,ry,st=0,n=80){ return Array.from({length:n+1},(_,i)=>{ con
 /* ── tech panel layout: ONE source of truth ─────────────────
    Used by both the auto-pruner and the renderer so the math
    can never drift apart (this is what caused badge overflow). */
-const TS = { px:610, pw:275, pad:14, badgeH:20, gapX:6, gapY:6, padX:10, charW:5.8, headH:32, headGap:10, cardGap:8, labelH:22, topY:16 };
-const MAX_TECH_BOTTOM = 540;          // prune until panel fits above this
+const TS = { px:610, pw:275, pad:14, badgeH:18, gapX:6, gapY:5, padX:8, charW:5.6, headH:30, headGap:10, cardGap:7, labelH:21, topY:16 };
+const MAX_TECH_BOTTOM = 580;          // prune until panel fits above this
 
 function layoutTech(tech){
   const cards = []; let cy = TS.topY + TS.headH + TS.headGap;
@@ -141,20 +161,44 @@ async function fetchData(){
   repos.forEach(r => { (r.topics||[]).forEach(t => parts.push(t));
     if (r.description) parts.push(r.description.toLowerCase()); parts.push(r.name.toLowerCase()); });
   parts.push(...readmes);
-  const corpus = parts.join(' ').replace(/[-_]/g,'.').toLowerCase();
+  /* normalize: '-', '_' AND whitespace → '.' so multi-word phrases
+     like "multi agent" / "GitHub Actions" / "fine-tuning" all match */
+  const corpus = parts.join(' ').toLowerCase().replace(/[-_\s]+/g,'.');
 
   const techStack = {};
   techStack['Languages'] = Object.entries(allLangs).sort((a,b) => b[1]-a[1]).map(e => e[0]).slice(0,8);
   Object.entries(TECH_DB).forEach(([cat, pairs]) => {
     const found = pairs.filter(([kw]) => corpus.includes(kw)).map(([,d]) => d);
-    if (found.length) techStack[cat] = [...new Set(found)].slice(0,10);
+    const merged = [...new Set([...(PINNED_TECH[cat] || []), ...found])];
+    if (merged.length) techStack[cat] = merged.slice(0, 12);
   });
-  /* auto-prune: trim the longest category until the panel fits */
-  while (layoutTech(techStack).bottom > MAX_TECH_BOTTOM){
-    let longest = null, maxLen = 0;
-    Object.entries(techStack).forEach(([cat, items]) => { if (items && items.length > maxLen){ maxLen = items.length; longest = cat; } });
-    if (longest && techStack[longest].length > 2) techStack[longest].pop(); else break;
+  /* auto-fit: phase 1 sheds detected *extras* only (largest category
+     first) so the pinned AI-core is never touched while space allows.
+     Phase 2 only runs if pinned items alone still overflow — a true
+     last resort that trims the longest category down to a floor of 2. */
+  const pinnedOf = cat => PINNED_TECH[cat] || [];
+  /* floor = how few items a category may keep in phase 1.
+     Pinned categories floor at their pinned count (extras only);
+     Languages has no pins, so protect its top 4 (by bytes). */
+  const floorOf = cat => cat === 'Languages' ? 4 : pinnedOf(cat).length;
+  const fits = () => layoutTech(techStack).bottom <= MAX_TECH_BOTTOM;
+  while (!fits()){                                  // phase 1: drop extras above floor
+    let target = null, max = 0;
+    for (const [cat, items] of Object.entries(techStack)){
+      if (items.length - floorOf(cat) > 0 && items.length > max){ max = items.length; target = cat; }
+    }
+    if (!target) break;
+    const arr = techStack[target];                 // remove last non-pinned (Languages: least-used)
+    for (let i = arr.length - 1; i >= 0; i--){ if (!pinnedOf(target).includes(arr[i])){ arr.splice(i, 1); break; } }
   }
+  while (!fits()){                                  // phase 2: last resort
+    let target = null, max = 2;
+    for (const [cat, items] of Object.entries(techStack)){ if (items.length > max){ max = items.length; target = cat; } }
+    if (!target) break;
+    techStack[target].pop();
+  }
+  console.log('🧪 Tech panel:', JSON.stringify(techStack));
+  console.log('📐 Panel bottom:', layoutTech(techStack).bottom, '(max ' + MAX_TECH_BOTTOM + ')');
 
   /* PRs merged: search API (accurate) with events fallback */
   let prs = 0;
@@ -372,8 +416,6 @@ const svgSyncStamp = () =>
 /* ── assemble ──────────────────────────────────────────────── */
 async function main(){
   const { commitData, stats, techStack, dayCounts } = await fetchData();
-  /* Languages need wider badges to fit the color dot — widen before layout */
-  if (techStack['Languages']) techStack['Languages'] = techStack['Languages'].map(l => l); // (dot width handled in TS.charW padding)
   let initials = USER.substring(0,2).toUpperCase();
   if (stats.name){ const p = stats.name.split(/\s+/);
     initials = p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0].substring(0,2).toUpperCase(); }
